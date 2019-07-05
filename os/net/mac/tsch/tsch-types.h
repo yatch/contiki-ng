@@ -98,6 +98,9 @@ struct tsch_packet {
   struct queuebuf *qb;  /* pointer to the queuebuf to be sent */
   mac_callback_t sent; /* callback for this packet */
   void *ptr; /* MAC callback parameter */
+#if BUILD_WITH_MSF
+  uint16_t last_tx_timeslot; /* timeslot of the last transmission performed */
+#endif /* BUILD_WITH_MSF */
   uint8_t transmissions; /* #transmissions performed for this packet */
   uint8_t max_transmissions; /* maximal number of Tx before dropping the packet */
   uint8_t ret; /* status -- MAC return code */
@@ -114,6 +117,10 @@ typedef struct tsch_neighbor {
   uint8_t last_backoff_window; /* Last CSMA backoff window */
   uint8_t tx_links_count; /* How many links do we have to this neighbor? */
   uint8_t dedicated_tx_links_count; /* How many dedicated links do we have to this neighbor? */
+#if BUILD_WITH_MSF
+  struct tsch_link *autonomous_tx_cell;
+  struct tsch_link *negotiated_tx_cell;
+#endif /* BUILD_WITH_MSF */
   struct tsch_packet *tx_priority; /* priority TX frame */
   /* Array for the ringbuf. Contains pointers to packets.
    * Its size must be a power of two to allow for atomic put */

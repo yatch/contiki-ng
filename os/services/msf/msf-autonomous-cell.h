@@ -28,62 +28,32 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <contiki.h>
-#include <contiki-net.h>
+/**
+ * \file
+ *         MSF Autonomous Cell APIs
+ * \author
+ *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
+ */
 
-#include <net/mac/tsch/sixtop/sixtop.h>
-#include <services/msf/msf.h>
+#ifndef MSF_AUTONOMOUS_CELL_H
+#define MSF_AUTONOMOUS_CELL_H
 
-#include <lib/sensors.h>
+#include <stddef.h>
 
-PROCESS(msf_node_process, "MSF node");
-AUTOSTART_PROCESSES(&msf_node_process);
+#include <net/linkaddr.h>
+#include <net/mac/tsch/tsch.h>
 
-const linkaddr_t *
-get_parent_addr(void)
-{
-  const uip_ipaddr_t *defrt;
-  const linkaddr_t *parent_addr;
+/**
+ * \brief Autonomous Cell Types
+ */
+typedef enum {
+  MSF_AUTONOMOUS_RX_CELL,
+  MSF_AUTONOMOUS_TX_CELL,
+} msf_autonomous_cell_type_t;
 
-  defrt = uip_ds6_defrt_choose();
-  if(defrt == NULL) {
-    parent_addr = NULL;
-  } else {
-    parent_addr = (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(defrt);
-  }
+struct tsch_link *msf_autonomous_cell_add(msf_autonomous_cell_type_t type,
+                                          const linkaddr_t *mac_addr);
 
-  return parent_addr;
-}
+void msf_autonomous_cell_delete(struct tsch_link *autonomous_cell);
 
-PROCESS_THREAD(msf_node_process, ev, data)
-{
-  static struct etimer et;
-  static struct udp_socket s;
-  static const uint8_t app_data[] = "data";
-  uip_ipaddr_t root_ipaddr;
-
-  PROCESS_BEGIN();
-
-  sixtop_add_sf(&msf);
-  printf("APP_SEND_INTERVAL: %u\n", APP_SEND_INTERVAL);
-  etimer_set(&et, APP_SEND_INTERVAL);
-
-  if(udp_socket_register(&s, NULL, NULL) < 0 ||
-     udp_socket_bind(&s, APP_UDP_PORT) < 0) {
-    printf("CRITICAL ERROR: socket initialization failed\n");
-  } else {
-    while(1) {
-      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-      etimer_reset(&et);
-      if(NETSTACK_ROUTING.node_is_reachable() &&
-         NETSTACK_ROUTING.get_root_ipaddr(&root_ipaddr) &&
-         msf_is_negotiated_tx_scheduled(get_parent_addr()) &&
-         udp_socket_sendto(&s, app_data, sizeof(app_data),
-                           &root_ipaddr, APP_UDP_PORT) > 0) {
-        printf("send app data\n");
-      }
-    }
-  }
-
-  PROCESS_END();
-}
+#endif /* !MSF_AUTONOMOUS_CELL_H */

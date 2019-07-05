@@ -28,62 +28,30 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <contiki.h>
-#include <contiki-net.h>
+/**
+ * \file
+ *         SAX implementation
+ * \author
+ *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
+ */
 
-#include <net/mac/tsch/sixtop/sixtop.h>
-#include <services/msf/msf.h>
+#ifndef SAX_H
+#define SAX_H
 
-#include <lib/sensors.h>
+#include <stddef.h>
+#include <stdint.h>
 
-PROCESS(msf_node_process, "MSF node");
-AUTOSTART_PROCESSES(&msf_node_process);
+/**
+ * \brief SAX hash function
+ * \param table_size table size (T) in bits
+ * \param input_str input string to be hashed
+ * \param str_len length of input string
+ * \param h0 initial value of H
+ * \param left_shift_bits width of left shift operation
+ * \param right_shift_bits width of right shift operation
+ * \return a resulting hash value
+ */
+uint16_t sax(uint16_t table_size, const uint8_t *input_str, size_t str_len,
+             uint16_t h0, uint16_t left_shift_bits, uint16_t right_shift_bits);
 
-const linkaddr_t *
-get_parent_addr(void)
-{
-  const uip_ipaddr_t *defrt;
-  const linkaddr_t *parent_addr;
-
-  defrt = uip_ds6_defrt_choose();
-  if(defrt == NULL) {
-    parent_addr = NULL;
-  } else {
-    parent_addr = (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(defrt);
-  }
-
-  return parent_addr;
-}
-
-PROCESS_THREAD(msf_node_process, ev, data)
-{
-  static struct etimer et;
-  static struct udp_socket s;
-  static const uint8_t app_data[] = "data";
-  uip_ipaddr_t root_ipaddr;
-
-  PROCESS_BEGIN();
-
-  sixtop_add_sf(&msf);
-  printf("APP_SEND_INTERVAL: %u\n", APP_SEND_INTERVAL);
-  etimer_set(&et, APP_SEND_INTERVAL);
-
-  if(udp_socket_register(&s, NULL, NULL) < 0 ||
-     udp_socket_bind(&s, APP_UDP_PORT) < 0) {
-    printf("CRITICAL ERROR: socket initialization failed\n");
-  } else {
-    while(1) {
-      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-      etimer_reset(&et);
-      if(NETSTACK_ROUTING.node_is_reachable() &&
-         NETSTACK_ROUTING.get_root_ipaddr(&root_ipaddr) &&
-         msf_is_negotiated_tx_scheduled(get_parent_addr()) &&
-         udp_socket_sendto(&s, app_data, sizeof(app_data),
-                           &root_ipaddr, APP_UDP_PORT) > 0) {
-        printf("send app data\n");
-      }
-    }
-  }
-
-  PROCESS_END();
-}
+#endif /* !SAX_H */
