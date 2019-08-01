@@ -28,8 +28,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <string.h>
-
 #include <contiki.h>
 
 #include <net/netstack.h>
@@ -141,13 +139,7 @@ PROCESS_THREAD(standalone_rpl_border_router_process, ev, data)
 {
   PROCESS_BEGIN();
 
-  /* contiki_argv is expected to be terminated the null charactor */
-  for(int i = 0; i < contiki_argc; i++) {
-    if(strcmp(contiki_argv[i], "-t") == 0) {
-      LOG_ERR("option -t is not supported, value of which will be ignored\n");
-    }
-  }
-  slip_config_handle_arguments(contiki_argc, contiki_argv);
+  (void)slip_config_handle_arguments(contiki_argc, contiki_argv);
 
   init_routing_table();
   LOG_INFO("Start as RPL Root\n");

@@ -6,10 +6,8 @@ PLATFORMS_ONLY = native
 
 MODULES += os/net/nullnet
 MODULES += os/services/shell
+MODULES += os/services/slip-cmd
 
-PROJECT_SOURCEFILES += slip-config.c
-.INTERMEDIATE: slip-config.c
-slip-config.c: $(CONTIKI)/os/services/rpl-border-router/native/slip-config.c
-	@cp -p $< $@
+PROJECT_SOURCEFILES += slip-config.c slip-dev.c
 
 include $(CONTIKI)/Makefile.include
