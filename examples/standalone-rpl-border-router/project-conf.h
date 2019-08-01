@@ -1,0 +1,14 @@
+#ifndef _PROJECT_CONF_H
+#define _PROJECT_CONF_H
+
+#define LOG_CONF_LEVEL_IPV6 LOG_LEVEL_INFO
+
+#define BUILD_WITH_RPL_BORDER_ROUTER 1
+
+#define NETSTACK_CONF_NETWORK nullnet_driver
+#define UIP_FALLBACK_INTERFACE tun6_interface
+
+#define UIP_CONF_MAX_ROUTES 1
+#define UIP_CONF_ND6_SEND_RA 0
+
+#endif /* ! _PROJECT_CONF_H */
