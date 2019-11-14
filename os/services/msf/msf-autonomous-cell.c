@@ -37,9 +37,9 @@
 
 #include <stddef.h>
 
-#include <contiki.h>
-#include <lib/assert.h>
-#include <sys/log.h>
+#include "contiki.h"
+#include "lib/assert.h"
+#include "sys/log.h"
 
 #include "msf.h"
 #include "msf-autonomous-cell.h"

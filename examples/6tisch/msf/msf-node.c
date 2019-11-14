@@ -28,13 +28,13 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <contiki.h>
-#include <contiki-net.h>
+#include "contiki.h"
+#include "contiki-net.h"
 
-#include <net/mac/tsch/sixtop/sixtop.h>
-#include <services/msf/msf.h>
+#include "net/mac/tsch/sixtop/sixtop.h"
+#include "services/msf/msf.h"
 
-#include <lib/sensors.h>
+#include "lib/sensors.h"
 
 PROCESS(msf_node_process, "MSF node");
 AUTOSTART_PROCESSES(&msf_node_process);

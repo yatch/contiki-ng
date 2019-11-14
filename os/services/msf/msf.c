@@ -37,14 +37,14 @@
 
 #include <stdbool.h>
 
-#include <contiki.h>
-#include <lib/assert.h>
-#include <sys/log.h>
+#include "contiki.h"
+#include "lib/assert.h"
+#include "sys/log.h"
 
-#include <net/linkaddr.h>
-#include <net/mac/mac.h>
-#include <net/mac/tsch/tsch.h>
-#include <net/mac/tsch/sixtop/sixtop.h>
+#include "net/linkaddr.h"
+#include "net/mac/mac.h"
+#include "net/mac/tsch/tsch.h"
+#include "net/mac/tsch/sixtop/sixtop.h"
 
 #include "msf-autonomous-cell.h"
 #include "msf-negotiated-cell.h"
