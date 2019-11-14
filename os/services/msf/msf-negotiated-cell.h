@@ -38,8 +38,8 @@
 #ifndef MSF_NEGOTIATED_CELL_H
 #define MSF_NEGOTIATED_CELL_H
 
-#include <net/linkaddr.h>
-#include <net/mac/tsch/tsch.h>
+#include "net/linkaddr.h"
+#include "net/mac/tsch/tsch.h"
 
 void msf_negotiated_cell_update_num_cells_used(uint16_t count);
 void msf_negotiated_cell_update_num_tx(uint16_t slot_offset, uint16_t num_tx,

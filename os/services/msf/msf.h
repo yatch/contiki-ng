@@ -40,9 +40,9 @@
 
 #include <stdint.h>
 
-#include <net/linkaddr.h>
-#include <net/mac/tsch/tsch.h>
-#include <net/mac/tsch/sixtop/sixtop.h>
+#include "net/linkaddr.h"
+#include "net/mac/tsch/tsch.h"
+#include "net/mac/tsch/sixtop/sixtop.h"
 
 /* Constants */
 #define MSF_SFID 1

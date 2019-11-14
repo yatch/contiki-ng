@@ -40,8 +40,8 @@
 
 #include <stddef.h>
 
-#include <net/linkaddr.h>
-#include <net/mac/tsch/tsch.h>
+#include "net/linkaddr.h"
+#include "net/mac/tsch/tsch.h"
 
 /**
  * \brief Autonomous Cell Types
