@@ -31,11 +31,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <contiki.h>
-#include <lib/assert.h>
+#include "contiki.h"
+#include "lib/assert.h"
 
-#include <dev/serial-line.h>
-#include <net/mac/tsch/tsch.h>
+#include "dev/serial-line.h"
+#include "net/mac/tsch/tsch.h"
 
 #define SLOTFRAME_HANDLE 0
 #define SLOTFRAME_DURATION (                                            \

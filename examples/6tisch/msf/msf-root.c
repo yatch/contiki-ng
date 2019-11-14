@@ -28,8 +28,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <contiki.h>
-#include <contiki-net.h>
+#include "contiki.h"
+#include "contiki-net.h"
 
 #include "net/routing/routing.h"
 #include "net/mac/tsch/sixtop/sixtop.h"
