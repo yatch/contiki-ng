@@ -124,6 +124,7 @@ struct tsch_neighbor {
   struct tsch_link *autonomous_tx_cell;
   struct tsch_link *negotiated_tx_cell;
 #endif /* BUILD_WITH_MSF */
+  struct tsch_packet *tx_priority; /* priority TX frame */
   /* Array for the ringbuf. Contains pointers to packets.
    * Its size must be a power of two to allow for atomic put */
   struct tsch_packet *tx_array[TSCH_QUEUE_NUM_PER_NEIGHBOR];
