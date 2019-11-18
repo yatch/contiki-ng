@@ -30,22 +30,28 @@
 
 /**
  * \file
- *         MSF Autonomous Cell APIs
+ *         MSF Housekeeping
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
+#ifndef _MSF_HOUSEKEEPING_H_
+#define _MSF_HOUSEKEEPING_H_
 
-#include "net/mac/tsch/tsch.h"
+#include "net/linkaddr.h"
+#include "services/shell/shell.h"
 
-tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
-int msf_autonomous_cell_activate();
-void msf_autonomous_cell_deactivate();
-const tsch_link_t *msf_autonomous_cell_get_rx(void);
-void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
-void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
-bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
-
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+void msf_housekeeping_start(void);
+void msf_housekeeping_stop(void);
+void msf_housekeeping_set_parent_addr(const linkaddr_t *new_parent);
+const linkaddr_t * msf_housekeeping_get_parent_addr(void);
+void msf_housekeeping_update_num_cells_used(uint16_t count);
+int msf_housekeeping_delete_cell_to_relocate(void);
+void msf_housekeeping_resolve_inconsistency(const linkaddr_t *peer_addr);
+void msf_housekeeping_delete_cell_later(tsch_link_t *cell);
+void msf_housekeeping_show_negotiated_cells(shell_output_func output);
+void msf_housekeeping_show_autonomous_cells(shell_output_func output);
+uint16_t msf_housekeeping_get_required_tx_cells(void);
+uint16_t msf_housekeeping_get_num_tx_cells_elapsed(void);
+uint16_t msf_housekeeping_get_num_tx_cells_used(void);
+#endif /* !_MSF_HOUSEKEEPING_H_ */

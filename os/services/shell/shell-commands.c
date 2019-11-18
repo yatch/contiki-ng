@@ -66,6 +66,9 @@
 #endif
 #include "net/routing/routing.h"
 #include "net/mac/llsec802154.h"
+#if BUILD_WITH_MSF
+#include "os/services/msf/msf.h"
+#endif
 
 /* For RPL-specific commands */
 #if ROUTING_CONF_RPL_LITE
@@ -863,6 +866,22 @@ PT_THREAD(cmd_6top(struct pt *pt, shell_output_func output, char *args))
 }
 #endif /* TSCH_WITH_SIXTOP */
 /*---------------------------------------------------------------------------*/
+#if BUILD_WITH_MSF
+static
+PT_THREAD(cmd_msf(struct pt *pt, shell_output_func output, char *args))
+{
+  char *next_args;
+
+  PT_BEGIN(pt);
+
+  SHELL_ARGS_INIT(args, next_args);
+  msf_shell_sub_cmd(output, args);
+  SHELL_ARGS_NEXT(args, next_args);
+
+  PT_END(pt);
+}
+#endif /* BUILD_WITH_MSF */
+/*---------------------------------------------------------------------------*/
 #if LLSEC802154_ENABLED
 static
 PT_THREAD(cmd_llsec_setlv(struct pt *pt, shell_output_func output, char *args))
@@ -1011,6 +1030,9 @@ const struct shell_command_t builtin_shell_commands[] = {
 #if TSCH_WITH_SIXTOP
   { "6top",                 cmd_6top,                 "'> 6top help': Shows 6top command usage" },
 #endif /* TSCH_WITH_SIXTOP */
+#if BUILD_WITH_MSF
+  { "msf",                  cmd_msf,                  "'> msf help': Shows msf command usage" },
+#endif /* BUILD_WITH_MSF */
 #if LLSEC802154_ENABLED
   { "llsec-set-level", cmd_llsec_setlv, "'> llsec-set-level <lv>': Set the level of link layer security (show if no lv argument)"},
   { "llsec-set-key", cmd_llsec_setkey, "'> llsec-set-key <id> <key>': Set the key of link layer security"},

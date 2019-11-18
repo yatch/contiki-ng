@@ -41,10 +41,29 @@
 #include "net/linkaddr.h"
 #include "net/mac/tsch/tsch.h"
 
-void msf_negotiated_cell_update_num_cells_used(uint16_t count);
-void msf_negotiated_cell_update_num_tx(uint16_t slot_offset, uint16_t num_tx,
-                                       uint8_t mac_tx_status);
-void msf_negotiated_cell_set_parent(const linkaddr_t *new_parent);
-void msf_negotiated_cell_remove_all(const linkaddr_t *new_parent);
+/* definitions */
+typedef enum {
+  MSF_NEGOTIATED_TX_CELL,
+  MSF_NEGOTIATED_RX_CELL
+} msf_negotiated_cell_type_t;
 
+void msf_negotiated_cell_activate(void);
+void msf_negotiated_cell_deactivate(void);
+tsch_slotframe_t *msf_negotiated_cell_get_slotframe(void);
+
+int msf_negotiated_cell_add(msf_negotiated_cell_type_t type,
+                            const linkaddr_t *peer_addr,
+                            uint16_t timeslot, uint16_t channel_offset);
+
+void msf_negotiated_cell_delete(tsch_link_t *cell);
+void msf_negotiated_cell_delete_all(const linkaddr_t *peer_addr);
+
+bool msf_negotiated_cell_is_scheduled_tx(tsch_neighbor_t *nbr);
+tsch_link_t *msf_negotiated_cell_get_tx_cell(tsch_neighbor_t *nbr);
+unsigned int msf_negotiated_cell_get_num_tx_cells(const linkaddr_t *peer_addr);
+void msf_negotiated_cell_update_num_tx(uint16_t slot_offset,
+                                       uint16_t num_tx, uint8_t mac_tx_status);
+tsch_link_t *msf_negotiated_cell_get_cell_to_relocate(void);
+uint16_t msf_negotiated_cell_get_num_tx(tsch_link_t *cell);
+uint16_t msf_negotiated_cell_get_num_tx_ack(tsch_link_t *cell);
 #endif /* !MSF_NEGOTIATED_CELL_H */
