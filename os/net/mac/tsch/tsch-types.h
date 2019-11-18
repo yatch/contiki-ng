@@ -118,7 +118,6 @@ typedef struct tsch_neighbor {
   uint8_t tx_links_count; /* How many links do we have to this neighbor? */
   uint8_t dedicated_tx_links_count; /* How many dedicated links do we have to this neighbor? */
 #if BUILD_WITH_MSF
-  struct tsch_link *autonomous_tx_cell;
   struct tsch_link *negotiated_tx_cell;
 #endif /* BUILD_WITH_MSF */
   struct tsch_packet *tx_priority; /* priority TX frame */

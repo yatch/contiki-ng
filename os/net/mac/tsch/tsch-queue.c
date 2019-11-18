@@ -56,6 +56,9 @@
 #include "net/mac/tsch/tsch.h"
 #include "net/nbr-table.h"
 #include <string.h>
+#if BUILD_WITH_MSF
+#include "services/msf/msf-callback.h"
+#endif
 
 /* Log configuration */
 #include "sys/log.h"
@@ -220,6 +223,10 @@ tsch_queue_remove_nbr(struct tsch_neighbor *n)
 
       /* Flush queue */
       tsch_queue_flush_nbr_queue(n);
+
+#if BUILD_WITH_MSF
+      msf_callback_tsch_nbr_removed(n);
+#endif /* BUILD_WITH_MSF */
 
       /* Free neighbor */
       nbr_table_remove(tsch_neighbors, n);

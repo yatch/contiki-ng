@@ -30,22 +30,24 @@
 
 /**
  * \file
- *         MSF Autonomous Cell APIs
+ *         MSF callback functions
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
+#ifndef _MSF_CALLBACK_H_
+#define _MSF_CALLBACK_H_
 
-#include "net/mac/tsch/tsch.h"
+#include <stdint.h>
 
-tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
-int msf_autonomous_cell_activate();
-void msf_autonomous_cell_deactivate();
-const tsch_link_t *msf_autonomous_cell_get_rx(void);
-void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
-void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
-bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
+#include "net/linkaddr.h"
 
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+void msf_callback_joining_network(void);
+void msf_callback_leavning_network(void);
+void msf_callback_packet_sent(uint16_t slot_offset,
+                              uint8_t mac_tx_status, int num_tx,
+                              const linkaddr_t *dest_addr);
+void msf_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new);
+void msf_callback_tsch_nbr_removed(tsch_neighbor_t *nbr);
+
+#endif /* _!MSF_CALLBACK_H_ */

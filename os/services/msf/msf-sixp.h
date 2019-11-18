@@ -30,22 +30,45 @@
 
 /**
  * \file
- *         MSF Autonomous Cell APIs
+ *         MSF 6P-related common functions (for internal use)
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
+#ifndef _MSF_SIXP_COMMON_H_
+#define _MSF_SIXP_COMMON_H_
+
+#include <stdint.h>
 
 #include "net/mac/tsch/tsch.h"
+#include "net/mac/tsch/sixtop/sixp-pkt.h"
 
-tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
-int msf_autonomous_cell_activate();
-void msf_autonomous_cell_deactivate();
-const tsch_link_t *msf_autonomous_cell_get_rx(void);
-void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
-void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
-bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
+#include "msf-sixp-add.h"
+#include "msf-sixp-clear.h"
+#include "msf-sixp-delete.h"
+#include "msf-sixp-relocate.h"
 
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+const char *msf_sixp_get_rc_str(sixp_pkt_rc_t rc);
+
+void msf_sixp_set_cell_params(uint8_t *buf,
+                              uint16_t timeslot, uint16_t channel_offset);
+void msf_sixp_get_cell_params(const uint8_t *buf,
+                              uint16_t *timeslot, uint16_t *channel_offset);
+
+bool msf_sixp_is_request_wait_timer_expired(void);
+void msf_sixp_stop_request_wait_timer();
+void msf_sixp_start_request_wait_timer(void);
+
+size_t msf_sixp_fill_cell_list(const linkaddr_t *peer_addr,
+                               uint8_t *cell_list, size_t cell_list_len);
+tsch_link_t *msf_sixp_reserve_one_cell(const linkaddr_t *peer_addr,
+                                       const uint8_t *cell_list,
+                                       size_t cell_list_len);
+const uint8_t *msf_sixp_find_specified_cell(const tsch_link_t *cell,
+                                            const uint8_t *cell_list,
+                                            size_t cell_list_len);
+tsch_link_t *msf_sixp_find_scheduled_cell(const linkaddr_t *peer_addr,
+                                          uint8_t link_options,
+                                          const uint8_t *cell_list,
+                                          size_t cell_list_len);
+#endif /* !_MSF_SIXP_COMMON_H_ */

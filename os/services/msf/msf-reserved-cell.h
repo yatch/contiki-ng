@@ -30,22 +30,26 @@
 
 /**
  * \file
- *         MSF Autonomous Cell APIs
+ *         MSF Reserved Cell APIs
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
+#ifndef _MSF_RESERVED_CELL_H_
+#define _MSF_RESERVED_CELL_H_
 
+#include <stdint.h>
+
+#include "net/linkaddr.h"
 #include "net/mac/tsch/tsch.h"
 
-tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
-int msf_autonomous_cell_activate();
-void msf_autonomous_cell_deactivate();
-const tsch_link_t *msf_autonomous_cell_get_rx(void);
-void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
-void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
-bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
+int msf_reserved_cell_get_num_cells(const linkaddr_t *peer_addr);
+tsch_link_t *msf_reserved_cell_get(const linkaddr_t *peer_addr,
+                                   int32_t slot_offset,
+                                   int32_t channel_offset);
+tsch_link_t *msf_reserved_cell_add(const linkaddr_t *peer_addr,
+                                   int32_t slot_offset,
+                                   int32_t channel_offset);
+void msf_reserved_cell_delete_all(const linkaddr_t *peer_addr);
 
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+#endif /* _MSF_RESERVED_CELL_H_ */

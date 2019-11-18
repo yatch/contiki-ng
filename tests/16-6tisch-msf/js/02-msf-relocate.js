@@ -30,17 +30,17 @@ while(true) {
     relocate_trans_count += 1;
   }
 
-  if(id === 2){
+  if(id === 2) {
     if(msg.indexOf("sent a RELOCATE request") !== -1) {
       write(jammer, "q");
-    } else if(msg.indexOf("add_link sf=2 opt=Tx type=NORMAL") !== -1) {
+    } else if(msg.indexOf("added a negotiated TX cell") !== -1) {
       num_tx_cell += 1;
       if(num_tx_cell == 2) {
         /*
          * make jammer bother communication on the second TX cell
          * scheduled by node-2
          */
-        ts_ch_str = msg.replace(/^.*ts=(\d+) ch=(\d+).*$/, "$1,$2");
+        ts_ch_str = msg.replace(/^.*slot_offset:(\d+), channel_offset:(\d+).*$/, "$1,$2");
         write(jammer, "s" + ts_ch_str);
       }
     }

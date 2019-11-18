@@ -30,22 +30,19 @@
 
 /**
  * \file
- *         MSF Autonomous Cell APIs
+ *         MSF 6P CLEAR handlers
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
+#ifndef _MSF_SIXP_CLEAR_H_
+#define _MSF_SIXP_CLEAR_H_
 
-#include "net/mac/tsch/tsch.h"
+#include "net/linkaddr.h"
 
-tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
-int msf_autonomous_cell_activate();
-void msf_autonomous_cell_deactivate();
-const tsch_link_t *msf_autonomous_cell_get_rx(void);
-void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
-void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
-bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
+void msf_sixp_clear_send_request(const linkaddr_t *peer_addr);
+void msf_sixp_clear_recv_request(const linkaddr_t *peer_addr);
+void msf_sixp_clear_recv_response(const linkaddr_t *peer_addr,
+                                  sixp_pkt_rc_t rc);
 
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+#endif /* !_MSF_SIXP_CLEAR_H_ */

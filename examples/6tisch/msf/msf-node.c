@@ -33,27 +33,16 @@
 
 #include "net/mac/tsch/sixtop/sixtop.h"
 #include "services/msf/msf.h"
+#include "services/shell/serial-shell.h"
 
 #include "lib/sensors.h"
 
+#include "sys/log.h"
+#define LOG_MODULE "APP"
+#define LOG_LEVEL LOG_LEVEL_MAIN
+
 PROCESS(msf_node_process, "MSF node");
 AUTOSTART_PROCESSES(&msf_node_process);
-
-const linkaddr_t *
-get_parent_addr(void)
-{
-  const uip_ipaddr_t *defrt;
-  const linkaddr_t *parent_addr;
-
-  defrt = uip_ds6_defrt_choose();
-  if(defrt == NULL) {
-    parent_addr = NULL;
-  } else {
-    parent_addr = (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(defrt);
-  }
-
-  return parent_addr;
-}
 
 PROCESS_THREAD(msf_node_process, ev, data)
 {
@@ -64,23 +53,24 @@ PROCESS_THREAD(msf_node_process, ev, data)
 
   PROCESS_BEGIN();
 
+  serial_shell_init();
   sixtop_add_sf(&msf);
-  printf("APP_SEND_INTERVAL: %u\n", APP_SEND_INTERVAL);
+  LOG_INFO("APP_SEND_INTERVAL: %u\n", APP_SEND_INTERVAL);
   etimer_set(&et, APP_SEND_INTERVAL);
 
   if(udp_socket_register(&s, NULL, NULL) < 0 ||
      udp_socket_bind(&s, APP_UDP_PORT) < 0) {
-    printf("CRITICAL ERROR: socket initialization failed\n");
+    LOG_ERR("CRITICAL ERROR: socket initialization failed\n");
   } else {
     while(1) {
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
       etimer_reset(&et);
       if(NETSTACK_ROUTING.node_is_reachable() &&
          NETSTACK_ROUTING.get_root_ipaddr(&root_ipaddr) &&
-         msf_is_negotiated_tx_scheduled(get_parent_addr()) &&
+         msf_is_ready() &&
          udp_socket_sendto(&s, app_data, sizeof(app_data),
                            &root_ipaddr, APP_UDP_PORT) > 0) {
-        printf("send app data\n");
+        LOG_DBG("send app data\n");
       }
     }
   }

@@ -43,6 +43,7 @@
 #include "net/linkaddr.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/sixtop/sixtop.h"
+#include "services/shell/shell.h"
 
 /* Constants */
 #define MSF_SFID 1
@@ -50,16 +51,16 @@
 #define MSF_SLOTFRAME_HANDLE_NEGOTIATED_CELLS 2
 #define MSF_SLOTFRAME_LENGTH TSCH_SCHEDULE_DEFAULT_LENGTH
 /*
- * cannot use tsch_ts_timeslot_length in TSCH_DEFAULT_TIMESLOT_TIMING
- * as a constant; instead set the slot length by hand.
+ * XXX: cannot use
+ * TSCH_DEFAULT_TIMESLOT_TIMING[tsch_ts_timeslot_length] for a
+ * constant
  */
 #define MSF_SLOT_LENGTH_MS 10
 
-#define MSF_6P_CELL_LIST_MIN_LEN 5
-#define MSF_6P_CELL_LIST_LEN 5
+#define MSF_6P_CELL_LIST_MAX_LEN 5
 
 /* MSF parameters */
-#if MSF_CONF_MAX_NUM_NEGOTIATED_TX_CELLS
+#if MSF_CONF_MAX_NUM_NEGOTIATED_CELLS
 #define MSF_MAX_NUM_NEGOTIATED_TX_CELLS MSF_CONF_MAX_NUM_NEGOTIATED_TX_CELLS
 #else
 #define MSF_MAX_NUM_NEGOTIATED_TX_CELLS 8
@@ -68,40 +69,25 @@
 #define MSF_MAX_NUM_CELLS 100
 #define MSF_LIM_NUM_CELLS_USED_HIGH 75
 #define MSF_LIM_NUM_CELLS_USED_LOW 25
-#define MSF_HOUSEKEEPING_COLLISION_PERIOD (60 * CLOCK_SECOND)
+#define MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN 1
 #define MSF_MIN_NUM_TX_FOR_RELOCATION 128
 #define MSF_RELOCATE_PDR_THRESHOLD 50
-#define MSF_WAIT_DURATION_MIN (30 * CLOCK_SECOND)
-#define MSF_WAIT_DURATION_MAX (60 * CLOCK_SECOND)
+#define MSF_WAIT_DURATION_MIN_SECONDS 30
+#define MSF_WAIT_DURATION_MAX_SECONDS 60
 
 /* SAX parameters */
 #define MSF_SAX_H0 0
 #define MSF_SAX_L_BIT 0
 #define MSF_SAX_R_BIT 1
 
-/* Callback registrations */
-#undef TSCH_CALLBACK_JOINING_NETWORK
-#define TSCH_CALLBACK_JOINING_NETWORK msf_callback_joining_network
-
-#undef TSCH_CALLBACK_LEAVING_NETWORK
-#define TSCH_CALLBACK_LEAVING_NETWORK msf_callback_leavning_network
-
-#undef TSCH_CALLBACK_PACKET_READY
-#define TSCH_CALLBACK_PACKET_READY msf_callback_packet_ready
-
-#undef RPL_CALLBACK_PARENT_SWITCH
-#define RPL_CALLBACK_PARENT_SWITCH msf_callback_parent_switch
-
 /* Variables */
 extern const sixtop_sf_t msf;
 
 /* Functions */
-void msf_callback_joining_network(void);
-void msf_callback_leavning_network(void);
-void msf_callback_packet_sent(uint8_t mac_tx_status, int num_tx,
-                              const linkaddr_t *dest_mac_addr);
-int msf_is_negotiated_tx_scheduled(const linkaddr_t *peer_addr);
+bool msf_is_activated(void);
+bool msf_is_ready(void);
 void msf_activate(void);
 void msf_deactivate(void);
+void msf_shell_sub_cmd(shell_output_func output, char *args);
 
 #endif /* !MSF_H */

@@ -30,22 +30,12 @@
 
 /**
  * \file
- *         MSF Autonomous Cell APIs
+ *         MSF Negotiated Cell APIs
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
-
-#include "net/mac/tsch/tsch.h"
-
-tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
-int msf_autonomous_cell_activate();
-void msf_autonomous_cell_deactivate();
-const tsch_link_t *msf_autonomous_cell_get_rx(void);
-void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
-void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
-bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
-
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+#define TSCH_CALLBACK_JOINING_NETWORK msf_callback_joining_network
+#define TSCH_CALLBACK_LEAVING_NETWORK msf_callback_leavning_network
+#define TSCH_CALLBACK_PACKET_READY msf_callback_packet_ready
+#define RPL_CALLBACK_PARENT_SWITCH msf_callback_parent_switch
