@@ -61,6 +61,9 @@
 #if TSCH_WITH_SIXTOP
 #include "net/mac/tsch/sixtop/sixtop.h"
 #endif
+#if BUILD_WITH_MSF
+#include "services/msf/msf-callback.h"
+#endif
 
 #if BUILD_WITH_MSF
 #include "services/msf/msf.h"
@@ -532,9 +535,6 @@ tsch_tx_process_pending(void)
     struct tsch_packet *p = dequeued_array[dequeued_index];
     /* Put packet into packetbuf for packet_sent callback */
     queuebuf_to_packetbuf(p->qb);
-#if BUILD_WITH_MSF
-    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, p->last_tx_timeslot);
-#endif /* BUILD_WITH_MSF */
     LOG_INFO("packet sent to ");
     LOG_INFO_LLADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER));
     LOG_INFO_(", seqno %u, status %d, tx %d\n",
@@ -542,7 +542,7 @@ tsch_tx_process_pending(void)
     /* Call packet_sent callback */
     mac_call_sent_callback(p->sent, p->ptr, p->ret, p->transmissions);
 #if BUILD_WITH_MSF
-    msf_callback_packet_sent(p->ret, p->transmissions,
+    msf_callback_packet_sent(p->last_tx_timeslot, p->ret, p->transmissions,
                              packetbuf_addr(PACKETBUF_ADDR_RECEIVER));
 #endif /* BUILD_WITH_MSF */
     /* Free packet queuebuf */

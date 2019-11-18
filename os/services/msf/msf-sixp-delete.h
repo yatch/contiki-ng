@@ -30,22 +30,26 @@
 
 /**
  * \file
- *         MSF Autonomous Cell APIs
+ *         MSF 6P DELETE handlers
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
+#ifndef _MSF_SIXP_DELETE_H_
+#define _MSF_SIXP_DELETE_H_
 
-#include "net/mac/tsch/tsch.h"
+#include <stdint.h>
 
-tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
-int msf_autonomous_cell_activate();
-void msf_autonomous_cell_deactivate();
-const tsch_link_t *msf_autonomous_cell_get_rx(void);
-void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
-void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
-bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
+#include "net/linkaddr.h"
+#include "net/mac/tsch/sixtop/sixp-pkt.h"
 
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+#include "msf-negotiated-cell.h"
+
+void msf_sixp_delete_send_request(void);
+void msf_sixp_delete_recv_request(const linkaddr_t *peer_addr,
+                                  const uint8_t *body, uint16_t body_len);
+void msf_sixp_delete_recv_response(const linkaddr_t *peer_addr,
+                                   sixp_pkt_rc_t rc,
+                                   const uint8_t *body, uint16_t body_len);
+
+#endif /* !_MSF_SIXP_DELETE_H_ */

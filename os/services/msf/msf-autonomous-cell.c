@@ -39,129 +39,195 @@
 
 #include "contiki.h"
 #include "lib/assert.h"
-#include "sys/log.h"
+
+#include "net/linkaddr.h"
 
 #include "msf.h"
 #include "msf-autonomous-cell.h"
+#include "msf-housekeeping.h"
 #include "sax.h"
 
+#include "sys/log.h"
 #define LOG_MODULE "MSF"
-#define LOG_LEVEL LOG_LEVEL_6TOP
+#define LOG_LEVEL LOG_LEVEL_MSF
+
+/**
+ * \brief Autonomous Cell Types
+ */
+typedef enum {
+  MSF_AUTONOMOUS_RX_CELL,
+  MSF_AUTONOMOUS_TX_CELL,
+} msf_autonomous_cell_type_t;
 
 /* variables */
 extern struct tsch_asn_divisor_t tsch_hopping_sequence_length;
+static tsch_slotframe_t *slotframe = NULL;
+static tsch_link_t *our_autonomous_rx_cell = NULL;
 
 /* static functions */
-static struct tsch_slotframe *get_slotframe(void);
-static struct tsch_slotframe *add_slotframe(void);
+static tsch_link_t *add_cell(msf_autonomous_cell_type_t type,
+                             const linkaddr_t *mac_addr);
+static void delete_cell(tsch_link_t *autonomous_cell);
 
 /*---------------------------------------------------------------------------*/
-static struct tsch_slotframe *
-get_slotframe(void)
+static tsch_link_t *
+add_cell(msf_autonomous_cell_type_t type, const linkaddr_t *mac_addr)
 {
-  const uint16_t slotframe_handle = MSF_SLOTFRAME_HANDLE_AUTONOMOUS_CELLS;
-  return tsch_schedule_get_slotframe_by_handle(slotframe_handle);
-}
-/*---------------------------------------------------------------------------*/
-static struct tsch_slotframe *
-add_slotframe(void)
-{
-  return tsch_schedule_add_slotframe(MSF_SLOTFRAME_HANDLE_AUTONOMOUS_CELLS,
-                                     MSF_SLOTFRAME_LENGTH);
-}
-/*---------------------------------------------------------------------------*/
-struct tsch_link *
-msf_autonomous_cell_add(msf_autonomous_cell_type_t type,
-                        const linkaddr_t *mac_addr)
-{
-  struct tsch_slotframe *slotframe = get_slotframe();
   const char *type_str;
   uint8_t link_options;
-  uint16_t timeslot;
+  uint16_t slot_offset;
   uint16_t channel_offset;
   uint16_t num_channels;
-  struct tsch_link *cell;
-
-  assert(mac_addr != NULL);
+  tsch_link_t *cell;
 
   if(type == MSF_AUTONOMOUS_TX_CELL) {
-    assert(slotframe != NULL);
     type_str = "TX";
     link_options = LINK_OPTION_TX | LINK_OPTION_SHARED;
   } else {
     assert(type == MSF_AUTONOMOUS_RX_CELL);
-    assert(slotframe == NULL);
     type_str = "RX";
     link_options = LINK_OPTION_RX;
-    if((slotframe = add_slotframe()) == NULL) {
-      LOG_ERR("failed to add the slotframe for the autonomous cell\n");
-    } else {
-      LOG_DBG("added the slotframe for the autonomous cell\n");
-    }
   }
 
-  if(slotframe == NULL) {
-    LOG_ERR("cannot add an autonomous %s cell for", type_str);
-    LOG_ERR_LLADDR(mac_addr);
-    LOG_ERR(" because the slotframe is not available\n");
-    cell = NULL;
-  } else {
-    /*
-     * o  slotOffset(MAC)    = 1 + hash(EUI64, length(Slotframe_1) - 1)
-     * o  channelOffset(MAC) = hash(EUI64, NUM_CH_OFFSET)
-     */
-    num_channels = tsch_hopping_sequence_length.val;
+  /*
+   * o  slotOffset(MAC)    = 1 + hash(EUI64, length(Slotframe_1) - 1)
+   * o  channelOffset(MAC) = hash(EUI64, NUM_CH_OFFSET)
+   */
+  assert(slotframe != NULL);
+  assert(mac_addr != NULL);
+  num_channels = tsch_hopping_sequence_length.val;
 
-    timeslot = 1 + sax(slotframe->size.val - 1,
-                       mac_addr->u8, sizeof(linkaddr_t),
+  slot_offset = 1 + sax(slotframe->size.val - 1,
+                        mac_addr->u8, sizeof(linkaddr_t),
+                        MSF_SAX_H0, MSF_SAX_L_BIT, MSF_SAX_R_BIT);
+  channel_offset = sax(num_channels, mac_addr->u8, sizeof(linkaddr_t),
                        MSF_SAX_H0, MSF_SAX_L_BIT, MSF_SAX_R_BIT);
-    channel_offset = sax(num_channels, mac_addr->u8, sizeof(linkaddr_t),
-                         MSF_SAX_H0, MSF_SAX_L_BIT, MSF_SAX_R_BIT);
 
-    if((cell = tsch_schedule_add_link(slotframe,
-                                      link_options, LINK_TYPE_NORMAL, mac_addr,
-                                      timeslot, channel_offset)) == NULL) {
-      LOG_ERR("failed to add the autonomous %s cell for ", type_str);
-      LOG_ERR_LLADDR(mac_addr);
-      LOG_ERR_("\n");
-    } else {
-      LOG_DBG("added an autonomous %s cell for ", type_str);
-      LOG_DBG_LLADDR(mac_addr);
-      LOG_DBG_(" at slot_offset:%u, channel_offset:%u\n",
-               timeslot, channel_offset);
-    }
+  if((cell = tsch_schedule_add_link(slotframe,
+                                    link_options, LINK_TYPE_NORMAL, mac_addr,
+                                    slot_offset, channel_offset)) == NULL) {
+    LOG_ERR("failed to add the autonomous %s cell for ", type_str);
+    LOG_ERR_LLADDR(mac_addr);
+    LOG_ERR_("\n");
+  } else {
+    LOG_DBG("added an autonomous %s cell for ", type_str);
+    LOG_DBG_LLADDR(mac_addr);
+    LOG_DBG_(" at slot_offset:%u, channel_offset:%u\n",
+             slot_offset, channel_offset);
   }
 
   return cell;
 }
 /*---------------------------------------------------------------------------*/
-void
-msf_autonomous_cell_delete(struct tsch_link *autonomous_cell)
+static void
+delete_cell(tsch_link_t *cell)
 {
-  struct tsch_slotframe *slotframe = get_slotframe();
+  const char *cell_type_str;
 
-  assert(slotframe != NULL);
-  assert(autonomous_cell != NULL);
-
-  if(autonomous_cell->link_options & LINK_OPTION_TX) {
-    assert(autonomous_cell->link_options & LINK_OPTION_SHARED);
-    if(tsch_schedule_remove_link(slotframe, autonomous_cell) == 0) {
-      LOG_ERR("failed to remove the autonomous TX cell for ");
-      LOG_ERR_LLADDR(&autonomous_cell->addr);
-      LOG_ERR_("\n");
-    } else {
-      LOG_DBG("removed an autonomous TX cell for ");
-      LOG_DBG_LLADDR(&autonomous_cell->addr);
-      LOG_DBG_("\n");
-    }
+  assert(cell != NULL);
+  if(cell->link_options & LINK_OPTION_TX) {
+    cell_type_str = "TX";
+  } else if(cell->link_options & LINK_OPTION_RX){
+    cell_type_str = "RX";
   } else {
-    assert(autonomous_cell->link_options & LINK_OPTION_RX);
-    if(tsch_schedule_remove_slotframe(slotframe) == 0) {
-      LOG_ERR("failed to remove the autonomous RX cell and the slotframe\n");
-    } else {
-      LOG_DBG("removed the slotframe for the autonomous cell instead of "
-              "removing the autonomous RX cell alone\n");
+    assert(cell->link_options == LINK_OPTION_LINK_TO_DELETE);
+    /* skip this one */
+  }
+
+  msf_housekeeping_delete_cell_later(cell);
+  LOG_DBG("removed an autonomous %s cell for ", cell_type_str);
+  LOG_DBG_LLADDR(&cell->addr);
+  LOG_DBG_(" at slot_offset:%u, channel_offset:%u\n",
+           cell->timeslot, cell->channel_offset);
+}
+/*---------------------------------------------------------------------------*/
+int
+msf_autonomous_cell_activate(void)
+{
+  slotframe = tsch_schedule_get_slotframe_by_handle(
+    MSF_SLOTFRAME_HANDLE_AUTONOMOUS_CELLS);
+  if(slotframe == NULL) {
+    our_autonomous_rx_cell = NULL;
+  } else {
+    our_autonomous_rx_cell = add_cell(MSF_AUTONOMOUS_RX_CELL,
+                                      &linkaddr_node_addr);
+  }
+  return our_autonomous_rx_cell != NULL ? 0 : -1;
+}
+/*---------------------------------------------------------------------------*/
+tsch_slotframe_t *
+msf_autonomous_cell_get_slotframe(void)
+{
+  return slotframe;
+}
+/*---------------------------------------------------------------------------*/
+void
+msf_autonomous_cell_deactivate(void)
+{
+  delete_cell(our_autonomous_rx_cell);
+  our_autonomous_rx_cell = NULL;
+  slotframe = NULL;
+}
+/*---------------------------------------------------------------------------*/
+const tsch_link_t *
+msf_autonomous_cell_get_rx(void)
+{
+  return our_autonomous_rx_cell;
+}
+/*---------------------------------------------------------------------------*/
+void
+msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr)
+{
+  if(peer_addr == NULL) {
+    /* shouldn't happen */
+    LOG_ERR("msf_autonomous_cell_add_tx: invalid peer_addr\n");
+  } else {
+    (void)add_cell(MSF_AUTONOMOUS_TX_CELL, peer_addr);
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr)
+{
+  if(slotframe == NULL) {
+    /* do nothing */
+  } else {
+    /* remove all the autonomous TX cells found in the slotframe */
+    tsch_link_t *cell, *next_cell;
+    for(cell = list_head(slotframe->links_list);
+        cell != NULL;
+        cell = next_cell) {
+      next_cell = list_item_next(cell);
+      if((cell->link_options & LINK_OPTION_TX) &&
+         (peer_addr == NULL ||
+          linkaddr_cmp(peer_addr, &cell->addr))) {
+        delete_cell(cell);
+      }
     }
   }
+}
+
+/*---------------------------------------------------------------------------*/
+bool
+msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr)
+{
+  bool ret;
+  if(slotframe == NULL || peer_addr == NULL) {
+    ret = false;
+  } else {
+    tsch_link_t *cell, *next_cell;
+    ret = false;
+    for(cell = list_head(slotframe->links_list);
+        cell != NULL;
+        cell = next_cell) {
+      next_cell = list_item_next(cell);
+      if((cell->link_options & LINK_OPTION_TX) &&
+         linkaddr_cmp(peer_addr, &cell->addr)) {
+        ret = true;
+        break;
+      }
+    }
+  }
+  return ret;
 }
 /*---------------------------------------------------------------------------*/

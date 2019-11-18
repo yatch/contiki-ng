@@ -34,6 +34,7 @@
 #include "net/routing/routing.h"
 #include "net/mac/tsch/sixtop/sixtop.h"
 #include "services/msf/msf.h"
+#include "services/shell/serial-shell.h"
 
 PROCESS(msf_root_process, "MSF root");
 AUTOSTART_PROCESSES(&msf_root_process);
@@ -43,6 +44,7 @@ PROCESS_THREAD(msf_root_process, ev, data)
   static struct udp_socket s;
   PROCESS_BEGIN();
 
+  serial_shell_init();
   if(udp_socket_register(&s, NULL, NULL) < 0 ||
      udp_socket_bind(&s, APP_UDP_PORT) < 0) {
     printf("CRITICAL ERROR: socket initialization failed\n");
