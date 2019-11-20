@@ -80,6 +80,7 @@ libs/simple-energest/openmote \
 libs/deployment/openmote \
 6tisch/simple-node/openmote \
 6tisch/simple-node/openmote:MAKE_WITH_SECURITY=1,MAKE_WITH_ORCHESTRA=1 \
+6tisch/msf/openmote \
 
 TOOLS=
 
