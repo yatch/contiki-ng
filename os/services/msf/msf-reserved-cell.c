@@ -101,7 +101,7 @@ msf_reserved_cell_get_num_cells(const linkaddr_t *peer_addr)
     for(cell = list_head(slotframe->links_list);
         cell != NULL;
         cell = (tsch_link_t *)list_item_next(cell)) {
-      if(cell->link_options == LINK_OPTION_RESERVED_LINK &&
+      if((cell->link_options & LINK_OPTION_RESERVED_LINK) &&
          linkaddr_cmp(&cell->addr, peer_addr)) {
         /* this is a reserved cell for the peer */
         ret += 1;
@@ -127,7 +127,7 @@ msf_reserved_cell_get(const linkaddr_t *peer_addr,
     for(cell = list_head(slotframe->links_list);
         cell != NULL;
         cell = (tsch_link_t *)list_item_next(cell)) {
-      if(cell->link_options == LINK_OPTION_RESERVED_LINK &&
+      if((cell->link_options & LINK_OPTION_RESERVED_LINK) &&
          linkaddr_cmp(&cell->addr, peer_addr) &&
          (slot_offset < 0 || cell->timeslot == slot_offset) &&
          (channel_offset < 0 || cell->channel_offset == channel_offset)) {
@@ -144,16 +144,28 @@ msf_reserved_cell_get(const linkaddr_t *peer_addr,
 /*---------------------------------------------------------------------------*/
 tsch_link_t *
 msf_reserved_cell_add(const linkaddr_t *peer_addr,
+                      msf_negotiated_cell_type_t cell_type,
                       int32_t slot_offset, int32_t channel_offset)
 {
   tsch_slotframe_t *slotframe = msf_negotiated_cell_get_slotframe();
   tsch_link_t *cell;
+  uint8_t link_options;
   int32_t _slot_offset;
   int32_t _channel_offset;
 
   assert(peer_addr != NULL);
 
   if(slotframe == NULL) {
+    return NULL;
+  }
+
+  if(cell_type == MSF_NEGOTIATED_CELL_TYPE_TX) {
+    link_options = LINK_OPTION_TX | LINK_OPTION_RESERVED_LINK;
+  } else if(cell_type == MSF_NEGOTIATED_CELL_TYPE_RX) {
+    link_options = LINK_OPTION_RX | LINK_OPTION_RESERVED_LINK;
+  } else {
+    /* unsupported */
+    LOG_ERR("invalid negotiated cell type value: %u\n", cell_type);
     return NULL;
   }
 
@@ -182,7 +194,7 @@ msf_reserved_cell_add(const linkaddr_t *peer_addr,
 
     /* the reserved cell doesn't have any link option on */
     if(_channel_offset < 0 ||
-       (cell = tsch_schedule_add_link(slotframe, LINK_OPTION_RESERVED_LINK,
+       (cell = tsch_schedule_add_link(slotframe, link_options,
                                       LINK_TYPE_NORMAL, peer_addr,
                                       (uint16_t)_slot_offset,
                                       (uint16_t)_channel_offset)) == NULL) {
@@ -210,7 +222,7 @@ msf_reserved_cell_delete_all(const linkaddr_t *peer_addr)
 
   for(cell = list_head(slotframe->links_list); cell != NULL; cell = next_cell) {
     next_cell = (tsch_link_t *)list_item_next(cell);
-    if(cell->link_options == LINK_OPTION_RESERVED_LINK) {
+    if(cell->link_options & LINK_OPTION_RESERVED_LINK) {
       if(peer_addr == NULL ||
          linkaddr_cmp(&cell->addr, peer_addr)) {
         uint16_t slot_offset = cell->timeslot;

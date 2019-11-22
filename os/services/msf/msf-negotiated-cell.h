@@ -29,41 +29,143 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         MSF Negotiated Cell APIs
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_NEGOTIATED_CELL_H
-#define MSF_NEGOTIATED_CELL_H
+#ifndef _MSF_NEGOTIATED_CELL_H
+#define _MSF_NEGOTIATED_CELL_H
 
 #include "net/linkaddr.h"
 #include "net/mac/tsch/tsch.h"
 
 /* definitions */
+/**
+ * \brief Types of negotiated cells
+ */
 typedef enum {
-  MSF_NEGOTIATED_TX_CELL,
-  MSF_NEGOTIATED_RX_CELL
+  MSF_NEGOTIATED_CELL_TYPE_TX,  /**< Negotiated TX cell */
+  MSF_NEGOTIATED_CELL_TYPE_RX   /**< Negotiated RX cell */
 } msf_negotiated_cell_type_t;
 
+/**
+ * \brief Activate the negotiated cell scheduling
+ */
 void msf_negotiated_cell_activate(void);
+
+/**
+ * \brief Deactivate the negotiated cell scheduling
+ * \details All the negotiated cells including reserved ones will be
+ * deleted
+ */
 void msf_negotiated_cell_deactivate(void);
+
+/**
+ * \brief Return a pointer to the slotframe for negotiated cells
+ */
 tsch_slotframe_t *msf_negotiated_cell_get_slotframe(void);
 
-int msf_negotiated_cell_add(msf_negotiated_cell_type_t type,
-                            const linkaddr_t *peer_addr,
-                            uint16_t timeslot, uint16_t channel_offset);
+/**
+ * \brief Add a negotiated cell
+ * \param peer_addr The MAC address of the peer
+ * \param type Type of the negotiated cell (TX or RX)
+ * \param slot_offset The slot offset of the cell
+ * \param channel_offset The channel offset of the cell
+ * \return 0 on success, -1 on failure
+ */
+int msf_negotiated_cell_add(const linkaddr_t *peer_addr,
+                            msf_negotiated_cell_type_t type,
+                            uint16_t slot_offset, uint16_t channel_offset);
 
+/**
+ * \brief Delete a negotiated cell
+ * \param cell A pointer to the cell to delete
+ */
 void msf_negotiated_cell_delete(tsch_link_t *cell);
+
+/**
+ * \brief Delete all negotiated cells associated with a peer
+ * \param peer_addr The MAC address of the target peer
+ * \details Specify NULL for peer_addr to remove all the negotiated
+ * cells in the schedule
+ */
 void msf_negotiated_cell_delete_all(const linkaddr_t *peer_addr);
 
+/**
+ * \brief Return whether a negotiated TX cell is scheduled with a peer
+ * \param nbr A tsch_neighbor_t object for the peer
+ * \return true if it is the case, otherwise false
+ */
 bool msf_negotiated_cell_is_scheduled_tx(tsch_neighbor_t *nbr);
-tsch_link_t *msf_negotiated_cell_get_tx_cell(tsch_neighbor_t *nbr);
-unsigned int msf_negotiated_cell_get_num_tx_cells(const linkaddr_t *peer_addr);
+
+/**
+ * \brief Return a negotiated cell to delete
+ * \param peer_addr The MAC address of the target peer
+ * \param cell_type The type of a negotiated cell to delete
+ * \return non-NULL if there is a candidate, otherwise NULL
+ */
+tsch_link_t *msf_negotiated_cell_get_cell_to_delete(
+  const linkaddr_t *peer_addr,
+  msf_negotiated_cell_type_t cell_type);
+
+/**
+ * \brief Return the number of negotiated cells scheduled with a peer
+ * \param cell_type The type of negotiated cells of interest
+ * \param peer_addr The MAC address of the target peer
+ */
+uint16_t msf_negotiated_cell_get_num_cells(msf_negotiated_cell_type_t cell_type,
+                                           const linkaddr_t *peer_addr);
+
+/**
+ * \brief Update the NumTx counter
+ * \param slot_offset The slot offset at which the last transmission occurrs
+ * \param num_tx The number of transmissions performed for the frame
+ * \param mac_tx_status The resuting TX status
+ */
 void msf_negotiated_cell_update_num_tx(uint16_t slot_offset,
                                        uint16_t num_tx, uint8_t mac_tx_status);
+
+/**
+ * \brief Get a cell to relocate
+ * \return A pointer to a negotiated TX cell to relocate if any,
+ * otherwise NULL
+ */
 tsch_link_t *msf_negotiated_cell_get_cell_to_relocate(void);
+
+/**
+ * \brief Return NumTx of a negotiated TX cell
+ * \return The value of NumTX, or 0 if the given cell is not a negotiated
+ * TX cell
+ */
 uint16_t msf_negotiated_cell_get_num_tx(tsch_link_t *cell);
+
+/**
+ * \brief Return NumTxAck of a negotiated TX cell
+ * \return The value of NumTX, or 0 if the given cell is not a negotiated
+ * TX cell
+ */
 uint16_t msf_negotiated_cell_get_num_tx_ack(tsch_link_t *cell);
-#endif /* !MSF_NEGOTIATED_CELL_H */
+
+/**
+ * \brief Mark a negotiated RX cell as used
+ * \param src_addr The src MAC address of a received packet
+ * \param slot_offset The slot offste of the target negotiated RX cell
+ */
+void msf_negotiated_cell_rx_is_used(const linkaddr_t *src_addr,
+                                    uint16_t slot_offset);
+
+/**
+ * \brief Detect and delete unused negotiated cells
+ * \details Negotiated cells scheduled with a neighbor which is
+ * thought being inactive will be delete
+ */
+void msf_negotiated_cell_delete_unused_cells(void);
+
+#endif /* !_MSF_NEGOTIATED_CELL_H */
+/** @} */

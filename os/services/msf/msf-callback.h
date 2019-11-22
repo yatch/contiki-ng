@@ -29,6 +29,10 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         MSF callback functions
  * \author
@@ -42,12 +46,47 @@
 
 #include "net/linkaddr.h"
 
+/**
+ * \brief Callback function on joining a network
+ */
 void msf_callback_joining_network(void);
+
+/**
+ * \brief Callback function on leaving a network
+ */
 void msf_callback_leavning_network(void);
+
+/**
+ * \brief Callback function on transmission of a frame
+ * \param slot_offset The slot offset at which the last transmission occurs
+ * \param mac_tx_status TX status of the transmission
+ * \param num_tx The number of transmissions performed
+ * \param dest_addr The destination address of the frame
+ */
 void msf_callback_packet_sent(uint16_t slot_offset,
                               uint8_t mac_tx_status, int num_tx,
                               const linkaddr_t *dest_addr);
+
+/**
+ * \brief Callback function on reception of a frame
+ * \param asn ASN at which the reception occurs
+ * \param src_addr The source address of the received frame
+ */
+void msf_callback_packet_recv(const struct tsch_asn_t *asn,
+                              const linkaddr_t *src_addr);
+
+/**
+ * \brief Callback function on parent switch
+ * \param old A pointer to the previous RPL preferred parent
+ * \param new A pointer to the new RPL preferred parent
+ */
 void msf_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new);
+
+/**
+ * \brief Callback function on removal of TSCH neighbor
+ * \param nbr A pointer to a tsch_neighbor_t object to be removed
+ */
 void msf_callback_tsch_nbr_removed(tsch_neighbor_t *nbr);
 
 #endif /* _!MSF_CALLBACK_H_ */
+/** @} */

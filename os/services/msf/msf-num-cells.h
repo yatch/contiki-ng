@@ -34,53 +34,52 @@
  */
 /**
  * \file
- *         MSF Reserved Cell APIs
+ *         MSF NumCells* counters APIs
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef _MSF_RESERVED_CELL_H_
-#define _MSF_RESERVED_CELL_H_
+#ifndef _MSF_NUM_CELLS_H_
+#define _MSF_NUM_CELLS_H_
 
-#include <stdint.h>
-
-#include "net/linkaddr.h"
-#include "net/mac/tsch/tsch.h"
+#include "msf-negotiated-cell.h"
 
 /**
- * \brief Return the number of reserved cells for a peer
- * \param peer_addr The MAC address of the target peer
+ * \brief Reset NumCells* counters
+ * \param clear_num_cells_required Specify whether you want to reset
+ * NumCellsRequired or not
  */
-int msf_reserved_cell_get_num_cells(const linkaddr_t *peer_addr);
+void msf_num_cells_reset(bool clear_num_cells_required);
 
 /**
- * \brief Return a reserved cell matching conditions
- * \param peer_addr The MAC address of a target cell
- * \param slot_offset The slot offset of a target cell
- * \param channel_offset The channel offset of a target cell
- * \return non-NULL if found, otherwise NULL
+ * \brief Update NumCells* counters
+ * \details This function is expected to be called with an interval
+ * of MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN
  */
-tsch_link_t *msf_reserved_cell_get(const linkaddr_t *peer_addr,
-                                   int32_t slot_offset,
-                                   int32_t channel_offset);
+void msf_num_cells_update(void);
 
 /**
- * \brief Add (reserve) a cell in the slotframe for negotiated cells
- * \param peer_addr The MAC address of the peer
- * \param cell_type Type of a reserved cell (TX or RX)
- * \param slot_offset The slot offset of a reserved cell
- * \param channel_offset The channel offset of a reserved cell
+ * \brief Update NumUsed for the negotiated TX cells
+ * \param count A value to add to NumUsed for negotiated TX cells
  */
-tsch_link_t *msf_reserved_cell_add(const linkaddr_t *peer_addr,
-                                   msf_negotiated_cell_type_t cell_type,
-                                   int32_t slot_offset,
-                                   int32_t channel_offset);
+void msf_num_cells_update_tx_used(uint16_t count);
 
 /**
- * \brief Delete all the cells reserved for a peer
- * \param peer_addr The MAC address of the peer
+ * \brief Increment NumUsed for negotiated/autonomous RX cells
  */
-void msf_reserved_cell_delete_all(const linkaddr_t *peer_addr);
+void msf_num_cells_increment_rx_used(void);
 
-#endif /* _MSF_RESERVED_CELL_H_ */
+/**
+ * \brief Trigger a 6P transaction if necessary, based on NumCells*
+ * counters
+ */
+void msf_num_cells_trigger_6p_transaction(void);
+
+/**
+ * \brief Show NumCells* counters in the shell
+ * \param output A pointer to shell_output_func
+ */
+void msf_num_cells_show(shell_output_func output);
+
+#endif /* !_MSF_NUM_CELLS_H_ */
 /** @} */

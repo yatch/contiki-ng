@@ -29,8 +29,12 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
- *         MSF 6P-related common functions (for internal use)
+ *         MSF 6P-related common helpers (for internal use)
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
@@ -48,27 +52,80 @@
 #include "msf-sixp-delete.h"
 #include "msf-sixp-relocate.h"
 
+/**
+ * \brief Return a string for a specifired return code
+ */
 const char *msf_sixp_get_rc_str(sixp_pkt_rc_t rc);
 
-void msf_sixp_set_cell_params(uint8_t *buf,
-                              uint16_t timeslot, uint16_t channel_offset);
-void msf_sixp_get_cell_params(const uint8_t *buf,
-                              uint16_t *timeslot, uint16_t *channel_offset);
+/**
+ * \brief Set cell parameters into a CellList buffer
+ * \param buf Address in a CellList buffer to write cell parameters
+ * \param cell The pointer to a target cell
+ */
+void msf_sixp_set_cell_params(uint8_t *buf, const tsch_link_t *cell);
 
+
+/**
+ * \brief Copy cell parameters from a CellList buffer
+ * \param buf An address in a CellList buffer to read cell parameters
+ * \param slot_offset A pointer to memory to copy the slot offset value
+ * \param channel_offset A pointer to memory to copy the channel offset value
+ */
+void msf_sixp_get_cell_params(const uint8_t *buf,
+                              uint16_t *slot_offset, uint16_t *channel_offset);
+
+/**
+ * \brief Return whether the waiting timer is expired or not
+ * \return true if it's expired, otherwise false
+ */
 bool msf_sixp_is_request_wait_timer_expired(void);
-void msf_sixp_stop_request_wait_timer();
+
+/**
+ * \brief Stop the waiting timer
+ */
+void msf_sixp_stop_request_wait_timer(void);
+
+/**
+ * \brief Start the waiting timer
+ */
 void msf_sixp_start_request_wait_timer(void);
 
+/**
+ * \brief Fill a CellList buffer with reserved cells
+ * \param peer_addr MAC address of the target peer for which cells are reserved
+ * \param cell_type Type of reserved cells (TX or RX)
+ * \param cell_list A pointer to a CellList buffer
+ * \param cell_list_len Length of the CellList buffer
+ * \return the number of bytes written
+ */
 size_t msf_sixp_fill_cell_list(const linkaddr_t *peer_addr,
+                               msf_negotiated_cell_type_t cell_type,
                                uint8_t *cell_list, size_t cell_list_len);
+
+/**
+ * \brief Reserve one of cells found in a given CellList
+ * \param peer_addr MAC address of the peer
+ * \param cell_type Type of a cell to reserve
+ * \param cell_list A pointer to a CellList buffer
+ * \param cell_list_len The length of the CellList buffer
+ * \return A pointer to a reserved cell on success, otherwise NULL
+ */
 tsch_link_t *msf_sixp_reserve_one_cell(const linkaddr_t *peer_addr,
+                                       msf_negotiated_cell_type_t cell_type,
                                        const uint8_t *cell_list,
                                        size_t cell_list_len);
-const uint8_t *msf_sixp_find_specified_cell(const tsch_link_t *cell,
-                                            const uint8_t *cell_list,
-                                            size_t cell_list_len);
+
+/**
+ * \brief Return a scheduled cell from a given CellList
+ * \param peer_addr MAC address of the peer
+ * \param link_options Link options of interest
+ * \param cell_list A CellList buffer
+ * \param cell_list_len Length of the CellList
+ * \return non-NULL if found, otherwise NULL
+ */
 tsch_link_t *msf_sixp_find_scheduled_cell(const linkaddr_t *peer_addr,
                                           uint8_t link_options,
                                           const uint8_t *cell_list,
                                           size_t cell_list_len);
 #endif /* !_MSF_SIXP_COMMON_H_ */
+/** @} */

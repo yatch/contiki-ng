@@ -29,6 +29,10 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         MSF 6P ADD handlers
  * \author
@@ -45,10 +49,31 @@
 
 #include "msf-negotiated-cell.h"
 
-void msf_sixp_add_send_request(void);
+
+/**
+ * \brief Send a ADD request
+ * \param cell_type Type of a negotiated cell to add
+ */
+void msf_sixp_add_send_request(msf_negotiated_cell_type_t cell_type);
+
+/**
+ * \brief Handler for reception of a ADD request
+ * \param peer_addr The source MAC address of the request
+ * \param body A pointer to the body of the request
+ * \param body_len The length of body in bytes
+ */
 void msf_sixp_add_recv_request(const linkaddr_t *peer_addr,
                                 const uint8_t *body, uint16_t body_len);
+
+/**
+ * \brief Handler for reception of a response for ADD
+ * \param peer_addr The soruce MAC address of the response
+ * \param rc Return code in the response
+ * \param body A pointer to the body of the request
+ * \param body_len The length of body in bytes
+ */
 void msf_sixp_add_recv_response(const linkaddr_t *peer_addr, sixp_pkt_rc_t rc,
                                 const uint8_t *body, uint16_t body_len);
 
 #endif /* !_MSF_SIXP_ADD_H_ */
+/** @} */

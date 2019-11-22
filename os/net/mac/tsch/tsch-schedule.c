@@ -188,6 +188,9 @@ print_link_options(uint16_t link_options)
   if(link_options & LINK_OPTION_SHARED) {
     strcat(buffer, "Sh|");
   }
+  if(link_options & LINK_OPTION_RESERVED_LINK) {
+    strcat(buffer, "(Rsvd)");
+  }
   length = strlen(buffer);
   if(length > 0) {
     buffer[length - 1] = '\0';
@@ -266,7 +269,8 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
         /* Release the lock before we update the neighbor (will take the lock) */
         tsch_release_lock();
 
-        if(l->link_options & LINK_OPTION_TX) {
+        if((l->link_options & LINK_OPTION_RESERVED_LINK) == 0 &&
+           l->link_options & LINK_OPTION_TX) {
           n = tsch_queue_add_nbr(&l->addr);
           /* We have a tx link to this neighbor, update counters */
           if(n != NULL) {
@@ -315,7 +319,8 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
       tsch_release_lock();
 
       /* This was a tx link to this neighbor, update counters */
-      if(link_options & LINK_OPTION_TX) {
+      if((link_options & LINK_OPTION_LINK_TO_DELETE) == 0 &&
+         link_options & LINK_OPTION_TX) {
         struct tsch_neighbor *n = tsch_queue_get_nbr(&addr);
         if(n != NULL) {
           n->tx_links_count--;
@@ -424,7 +429,9 @@ tsch_schedule_get_next_active_link(struct tsch_asn_t *asn, uint16_t *time_offset
           l->timeslot > timeslot ?
           l->timeslot - timeslot :
           sf->size.val + l->timeslot - timeslot;
-        if(curr_best == NULL || time_to_timeslot < time_to_curr_best) {
+        if(l->link_options & LINK_OPTION_RESERVED_LINK) {
+          /* this link is not effective; skip it */
+        } else if(curr_best == NULL || time_to_timeslot < time_to_curr_best) {
           time_to_curr_best = time_to_timeslot;
           curr_best = l;
           curr_backup = NULL;

@@ -29,23 +29,64 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         MSF Autonomous Cell APIs
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef MSF_AUTONOMOUS_CELL_H
-#define MSF_AUTONOMOUS_CELL_H
+#ifndef _MSF_AUTONOMOUS_CELL_H
+#define _MSF_AUTONOMOUS_CELL_H
 
 #include "net/mac/tsch/tsch.h"
 
+/**
+ * \brief Return a pointer to the slotframe for the autnomous cells
+ * \return non-NULL if it exists, otherwise NULL
+ */
 tsch_slotframe_t *msf_autonomous_cell_get_slotframe(void);
+
+/**
+ * \brief Activate the autonomous cell scheduling
+ * \details An autonomous RX cell will be installed.
+ */
 int msf_autonomous_cell_activate();
+
+/**
+ * \brief Deactivate the autonomous cell scheduling
+ * \details All the autonomous cells scheduled will be deleted
+ */
 void msf_autonomous_cell_deactivate();
+
+/**
+ * \brief Return a poniter to the autonomous RX cell
+ * \return non-NULL if it's scheduled, otherwise NULL
+ */
 const tsch_link_t *msf_autonomous_cell_get_rx(void);
+
+/**
+ * \brief Add an autonomous TX cell for a peer
+ * \param peer_addr The MAC address of the target peer
+ */
 void msf_autonomous_cell_add_tx(const linkaddr_t *peer_addr);
+
+/**
+ * \brief Delete an autonomous TX cell scheduled for a peer
+ * \param peer_addr The MAC address of the target peer
+ */
 void msf_autonomous_cell_delete_tx(const linkaddr_t *peer_addr);
+
+/**
+ * \brief Return whether an autonomous TX cell for a peer is scheduled
+ * or not
+ * \param peer_addr The MAC address of the target peer
+ * \return true if it's scheduled, otherwise false
+ */
 bool msf_autonomous_cell_is_scheduled_tx(const linkaddr_t *peer_addr);
 
-#endif /* !MSF_AUTONOMOUS_CELL_H */
+#endif /* !_MSF_AUTONOMOUS_CELL_H */
+/** @} */

@@ -114,36 +114,60 @@ show_constants(shell_output_func output)
     uint32_t val;
   } constants[] = {
     {
-      "o NUM_CH_OFFSET                : %u\n",
-      tsch_hopping_sequence_length.val
-    },
-    {
-      "o KA_PERIOD                    : %us\n",
-      TSCH_KEEPALIVE_TIMEOUT / CLOCK_SECOND
-    },
-    {
-      "o LIM_NUMCELLSUSED_HIGH        : %u%%\n",
-      MSF_LIM_NUM_CELLS_USED_HIGH
-    },
-    {
-      "o LIM_NUMCELLSUSED_LOW         : %u%%\n",
-      MSF_LIM_NUM_CELLS_USED_LOW
-    },
-    {
-      "o HOUSEKEEPINGCOLLISION_PERIOD : %umin\n",
-      MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN
-    },
-    {
       "o SLOTFRAME_LENGTH             : %u\n",
       MSF_SLOTFRAME_LENGTH
     },
     {
-      "o WAITDURATION_MIN             : %us\n",
+      "o SLOT_LENGTH                  : %ums\n",
+      MSF_SLOT_LENGTH_MS
+    },
+    {
+      "o NUM_CH_OFFSET                : %u\n",
+      tsch_hopping_sequence_length.val
+    },
+    {
+      "o MAX_NUM_CELLS                : %u\n",
+      MSF_MAX_NUM_CELLS
+    },
+    {
+      "o LIM_NUM_CELLS_USED_HIGH      : %u%%\n",
+      MSF_LIM_NUM_CELLS_USED_HIGH
+    },
+    {
+      "o LIM_NUM_CELLS_USED_LOW       : %u%%\n",
+      MSF_LIM_NUM_CELLS_USED_LOW
+    },
+    {
+      "o HOUSEKEEPING_COLLISION_PERIOD: %umin\n",
+      MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN
+    },
+    {
+      "o HOUSEKEEPING_GC_PERIOD       : %umin\n",
+      MSF_HOUSEKEEPING_GC_PERIOD_MIN,
+    },
+    {
+      "o MSF_MIN_NUM_TX_FOR_RELOCATION: %u\n",
+      MSF_MIN_NUM_TX_FOR_RELOCATION
+    },
+    {
+      "o MSF_RELOCATE_PDR_THRESHOLD   : %u%%\n",
+      MSF_RELOCATE_PDR_THRESHOLD
+    },
+    {
+      "o WAIT_DURATION_MIN            : %us\n",
       MSF_WAIT_DURATION_MIN_SECONDS
     },
     {
-      "o WAITDURATION_MAX             : %us\n",
+      "o WAIT_DURATION_MAX            : %us\n",
       MSF_WAIT_DURATION_MAX_SECONDS
+    },
+    {
+      "o MAX_NUM_NEGOTIATED_TX_CELLS  : %u\n",
+      MSF_MAX_NUM_NEGOTIATED_TX_CELLS
+    },
+    {
+      "o MAX_NUM_NEGOTIATED_RX_CELLS  : %u\n",
+      MSF_MAX_NUM_NEGOTIATED_RX_CELLS
     },
     {
       NULL, 0
@@ -178,14 +202,6 @@ show_status(shell_output_func output)
     shell_output_lladdr(output,
                         (parent_addr = msf_housekeeping_get_parent_addr()));
     SHELL_OUTPUT(output, "\n");
-    SHELL_OUTPUT(output, "o up TX - NumCellsElapsed %u, NumCellsUsed: %u\n",
-                 msf_housekeeping_get_num_tx_cells_elapsed(),
-                 msf_housekeeping_get_num_tx_cells_used());
-    SHELL_OUTPUT(output, "o up TX - required: %u, scheduled: %u\n",
-                 msf_housekeeping_get_required_tx_cells(),
-                 msf_negotiated_cell_get_num_tx_cells(parent_addr));
-    SHELL_OUTPUT(output, "o up RX - NumCellsElapsed N/A, NumCellsUsed: N/A\n");
-    SHELL_OUTPUT(output, "o up RX - required: N/A, scheduled: N/A\n");
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -265,10 +281,10 @@ timeout_handler(sixp_pkt_cmd_t cmd, const linkaddr_t *peer_addr)
   } else {
     /* we are the responder */
     /*
-     * scheduling inconsistency may happen because of this timeout of
+     * schedule inconsistency may happen because of this timeout of
      * the transaction, where the peer completes the transaction by
      * our L2 MAC, but we don't. Better to confirm if there is
-     * scheduling consistency.
+     * schedule consistency.
      */
   }
 }
@@ -277,15 +293,12 @@ static void
 error_handler(sixp_error_t err, sixp_pkt_cmd_t cmd, uint8_t seqno,
               const linkaddr_t *peer_addr)
 {
-
-}
-/*---------------------------------------------------------------------------*/
-static void
-delete_all_cells(void)
-{
-  msf_autonomous_cell_delete_tx(NULL);
-  msf_negotiated_cell_delete_all(NULL);
-  msf_reserved_cell_delete_all(NULL);
+  LOG_WARN("A 6P transaction for (cmd: %u) with ", cmd);
+  LOG_WARN_LLADDR(peer_addr);
+  LOG_WARN_(" ends with an error (err: %u)\n", err);
+  if(err == SIXP_ERROR_SCHEDULE_INCONSISTENCY) {
+    msf_negotiated_cell_delete_all(peer_addr);
+  }
 }
 /*---------------------------------------------------------------------------*/
 bool
@@ -297,29 +310,36 @@ msf_is_activated(void)
 bool
 msf_is_ready(void)
 {
-  tsch_neighbor_t *nbr;
+  bool ret = false;
 
   if(activated) {
-    const uip_ipaddr_t *defrt;
-    const linkaddr_t *parent_addr;
-    defrt = uip_ds6_defrt_choose();
-
-    if(defrt == NULL) {
-      parent_addr = NULL;
+    if(tsch_is_coordinator) {
+      ret = true;
     } else {
-      parent_addr = (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(defrt);
-    }
+      const uip_ipaddr_t *defrt;
+      const linkaddr_t *parent_addr;
+      tsch_neighbor_t *nbr;
 
-    if(parent_addr == NULL) {
-      nbr = NULL;
-    } else {
-      nbr = tsch_queue_get_nbr(parent_addr);
+      defrt = uip_ds6_defrt_choose();
+
+      if(defrt == NULL) {
+        parent_addr = NULL;
+      } else {
+        parent_addr = (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(defrt);
+      }
+
+      if(parent_addr == NULL) {
+        ret = false;
+      } else {
+        nbr = tsch_queue_get_nbr(parent_addr);
+        ret = msf_negotiated_cell_is_scheduled_tx(nbr);
+      }
     }
   } else {
-    nbr = NULL;
+    ret = false;
   }
 
-  return nbr != NULL && msf_negotiated_cell_is_scheduled_tx(nbr);
+  return ret;
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -358,7 +378,6 @@ msf_deactivate(void)
     /* XXX: it would be better to abort all on-going 6P transactions */
 
     /* remove all the autonomous/negotiated/reserved cells */
-    delete_all_cells();
     msf_autonomous_cell_deactivate();
     msf_negotiated_cell_deactivate();
 

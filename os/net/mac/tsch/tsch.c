@@ -524,6 +524,11 @@ tsch_rx_process_pending()
       eb_input(current_input);
     }
 
+#if BUILD_WITH_MSF
+    msf_callback_packet_recv(&current_input->rx_asn,
+                             (const linkaddr_t *)frame.src_addr);
+#endif /* BUILD_WITH_MSF */
+
     /* Remove input from ringbuf */
     ringbufindex_get(&input_ringbuf);
   }

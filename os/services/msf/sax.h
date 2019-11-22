@@ -29,6 +29,10 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         SAX implementation
  * \author
@@ -55,3 +59,4 @@ uint16_t sax(uint16_t table_size, const uint8_t *input_str, size_t str_len,
              uint16_t h0, uint16_t left_shift_bits, uint16_t right_shift_bits);
 
 #endif /* !SAX_H */
+/** @} */
