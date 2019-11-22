@@ -29,6 +29,10 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         MSF 6P CLEAR handlers
  * \author
@@ -40,8 +44,23 @@
 
 #include "net/linkaddr.h"
 
+/**
+ * \brief Send a CLEAR request
+ * \param peer_addr The destination MAC address
+ */
 void msf_sixp_clear_send_request(const linkaddr_t *peer_addr);
+
+/**
+ * \brief Handler for reception of a CLEAR request
+ * \param peer_addr The source MAC address of the request
+ */
 void msf_sixp_clear_recv_request(const linkaddr_t *peer_addr);
+
+/**
+ * \brief Handler for reception of a response for CLAER
+ * \param peer_addr The source MAC address of the response
+ * \param rc Return code in the response
+ */
 void msf_sixp_clear_recv_response(const linkaddr_t *peer_addr,
                                   sixp_pkt_rc_t rc);
 

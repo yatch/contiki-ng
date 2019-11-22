@@ -30,7 +30,7 @@
 
 /**
  * \file
- *         MSF 6P-related common functions (for internal use)
+ *         MSF 6P-related common helpers (for internal use)
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
@@ -85,21 +85,28 @@ msf_sixp_get_rc_str(sixp_pkt_rc_t rc)
 }
 /*---------------------------------------------------------------------------*/
 void
-msf_sixp_set_cell_params(uint8_t *buf,
-                         uint16_t slot_offset, uint16_t channel_offset)
+msf_sixp_set_cell_params(uint8_t *buf, const tsch_link_t *cell)
 {
-  buf[0] = slot_offset & 0xff;
-  buf[1] = slot_offset >> 8;
-  buf[2] = channel_offset & 0xff;
-  buf[3] = channel_offset >> 8;
+  if(buf == NULL || cell == NULL) {
+    /* do nothing */
+  } else {
+    buf[0] = cell->timeslot & 0xff;
+    buf[1] = cell->timeslot >> 8;
+    buf[2] = cell->channel_offset & 0xff;
+    buf[3] = cell->channel_offset >> 8;
+  }
 }
 /*---------------------------------------------------------------------------*/
 void
 msf_sixp_get_cell_params(const uint8_t *buf,
                          uint16_t *slot_offset, uint16_t *channel_offset)
 {
-  *slot_offset = buf[0] + (buf[1] << 8);
-  *channel_offset = buf[2] + (buf[3] << 8);
+  if(buf == NULL || slot_offset == NULL || channel_offset == NULL) {
+    /* do nothing */
+  } else {
+    *slot_offset = buf[0] + (buf[1] << 8);
+    *channel_offset = buf[2] + (buf[3] << 8);
+  }
 }
 /*---------------------------------------------------------------------------*/
 bool
@@ -134,18 +141,17 @@ msf_sixp_start_request_wait_timer(void)
 /*---------------------------------------------------------------------------*/
 size_t
 msf_sixp_fill_cell_list(const linkaddr_t *peer_addr,
+                        msf_negotiated_cell_type_t cell_type,
                         uint8_t *cell_list, size_t cell_list_len)
 {
   tsch_link_t *reserved_cell;
   size_t filled_cell_list_len = 0;
   while(filled_cell_list_len < cell_list_len) {
-    reserved_cell = msf_reserved_cell_add(peer_addr, -1, -1);
+    reserved_cell = msf_reserved_cell_add(peer_addr, cell_type, -1, -1);
     if(reserved_cell == NULL) {
       break;
     } else {
-      msf_sixp_set_cell_params(cell_list + filled_cell_list_len,
-                               reserved_cell->timeslot,
-                               reserved_cell->channel_offset);
+      msf_sixp_set_cell_params(cell_list + filled_cell_list_len, reserved_cell);
       filled_cell_list_len += sizeof(sixp_pkt_cell_t);
     }
   }
@@ -154,6 +160,7 @@ msf_sixp_fill_cell_list(const linkaddr_t *peer_addr,
 /*---------------------------------------------------------------------------*/
 tsch_link_t *
 msf_sixp_reserve_one_cell(const linkaddr_t *peer_addr,
+                          msf_negotiated_cell_type_t cell_type,
                           const uint8_t *cell_list, size_t cell_list_len)
 {
   size_t offset;
@@ -169,6 +176,7 @@ msf_sixp_reserve_one_cell(const linkaddr_t *peer_addr,
       msf_sixp_get_cell_params(cell_list + offset,
                                &slot_offset, &channel_offset);
       if((reserved_cell = msf_reserved_cell_add(peer_addr,
+                                                cell_type,
                                                 slot_offset,
                                                 channel_offset)) != NULL) {
         break;
@@ -181,35 +189,6 @@ msf_sixp_reserve_one_cell(const linkaddr_t *peer_addr,
     }
   }
   return reserved_cell;
-}
-/*---------------------------------------------------------------------------*/
-const uint8_t *
-msf_sixp_find_specified_cell(const tsch_link_t *cell,
-                             const uint8_t *cell_list, size_t cell_list_len)
-{
-  const uint8_t *p;
-  if(cell == NULL || cell_list == NULL) {
-    p = NULL;
-  } else {
-    uint16_t slot_offset, channel_offset;
-    for(p = cell_list;
-        p < cell_list + cell_list_len;
-        p += sizeof(sixp_pkt_cell_t)) {
-      msf_sixp_get_cell_params(p, &slot_offset, &channel_offset);
-      if(slot_offset == cell->timeslot &&
-         channel_offset == cell->channel_offset) {
-        /* found */
-        break;
-      } else {
-        /* try next */
-      }
-    }
-    if(p >= cell_list + cell_list_len) {
-      /* not found */
-      p = NULL;
-    }
-  }
-  return p;
 }
 /*---------------------------------------------------------------------------*/
 tsch_link_t *

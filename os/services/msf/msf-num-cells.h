@@ -34,44 +34,52 @@
  */
 /**
  * \file
- *         MSF 6P RELOCATE handlers
+ *         MSF NumCells* counters APIs
  * \author
  *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
  */
 
-#ifndef _MSF_SIXP_RELOCATE_H_
-#define _MSF_SIXP_RELOCATE_H_
+#ifndef _MSF_NUM_CELLS_H_
+#define _MSF_NUM_CELLS_H_
 
-#include <stdint.h>
-
-#include "net/linkaddr.h"
-#include "net/mac/tsch/sixtop/sixp-pkt.h"
+#include "msf-negotiated-cell.h"
 
 /**
- * \brief Send a RELOCATE request
- * \param cell Cell to relocate
+ * \brief Reset NumCells* counters
+ * \param clear_num_cells_required Specify whether you want to reset
+ * NumCellsRequired or not
  */
-void msf_sixp_relocate_send_request(const tsch_link_t *cell);
+void msf_num_cells_reset(bool clear_num_cells_required);
 
 /**
- * \brief Handler for reception of a RELOCATE request
- * \param peer_addr The source MAC address of the request
- * \param body A pointer to the body of the request
- * \param body_len The length of body in bytes
+ * \brief Update NumCells* counters
+ * \details This function is expected to be called with an interval
+ * of MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN
  */
-void msf_sixp_relocate_recv_request(const linkaddr_t *peer_addr,
-                                    const uint8_t *body, uint16_t body_len);
+void msf_num_cells_update(void);
 
 /**
- * \brief Handler for reception of a response for RELOCATE
- * \param peer_addr The source MAC address of the response
- * \param rc Return code in the response
- * \param body A pointer to the body of the request
- * \param body_len The length of body in bytes
+ * \brief Update NumUsed for the negotiated TX cells
+ * \params count A value to add to NumUsed for negotiated TX cells
  */
-void msf_sixp_relocate_recv_response(const linkaddr_t *peer_addr,
-                                     sixp_pkt_rc_t rc,
-                                     const uint8_t *body, uint16_t body_len);
+void msf_num_cells_update_tx_used(uint16_t count);
 
-#endif /* !_MSF_SIXP_RELOCATE_H_ */
+/**
+ * \brief Increment NumUsed for negotiated/autonomous RX cells
+ */
+void msf_num_cells_increment_rx_used(void);
+
+/**
+ * \brief Trigger a 6P transaction if necessary, based on NumCells*
+ * counters
+ */
+void msf_num_cells_trigger_6p_transaction(void);
+
+/**
+ * \brief Show NumCells* counters in the shell
+ * \param output A pointer to shell_output_func
+ */
+void msf_num_cells_show(shell_output_func output);
+
+#endif /* !_MSF_NUM_CELLS_H_ */
 /** @} */

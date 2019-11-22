@@ -56,6 +56,9 @@
 static bool is_valid_request(sixp_pkt_cell_options_t cell_options,
                              sixp_pkt_num_cells_t num_cells,
                              const uint8_t *cell_list, uint16_t cell_list_len);
+static void sent_callback_initiator(void *arg, uint16_t arg_len,
+                                    const linkaddr_t *dest_addr,
+                                    sixp_output_status_t status);
 static void sent_callback_responder(void *arg, uint16_t arg_len,
                                     const linkaddr_t *dest_addr,
                                     sixp_output_status_t status);
@@ -73,9 +76,10 @@ is_valid_request(sixp_pkt_cell_options_t cell_options,
 {
   bool ret = false;
 
-  if(cell_options != SIXP_PKT_CELL_OPTION_TX) {
-    LOG_INFO("bad CellOptions - %02X (should be %02X)\n",
-             cell_options, SIXP_PKT_CELL_OPTION_TX);
+  if(cell_options != SIXP_PKT_CELL_OPTION_TX &&
+     cell_options != SIXP_PKT_CELL_OPTION_RX) {
+    LOG_INFO("bad CellOptions - %02X (should be %02X or %02X)\n",
+             cell_options, SIXP_PKT_CELL_OPTION_TX, SIXP_PKT_CELL_OPTION_RX);
   } else if(num_cells != 1) {
     LOG_INFO("bad NumCells - %u (should be 1)\n", num_cells);
   } else if(cell_list == NULL) {
@@ -86,6 +90,30 @@ is_valid_request(sixp_pkt_cell_options_t cell_options,
     ret = true;
   }
   return ret;
+}
+/*---------------------------------------------------------------------------*/
+static void
+sent_callback_initiator(void *arg, uint16_t arg_len,
+                        const linkaddr_t *dest_addr,
+                        sixp_output_status_t status)
+{
+  tsch_link_t *cell_to_delete = (tsch_link_t *)arg;
+  if(cell_to_delete == NULL) {
+    /* do nothing */
+  } else {
+    if(status != SIXP_OUTPUT_STATUS_SUCCESS &&
+       cell_to_delete->link_options == LINK_OPTION_TX) {
+      /*
+       * The peer may have gone; delete the TX cell. Even if the
+       * failure occurs just by bad luck, it should be fine. A
+       * possible schedule inconsistency should be detected during a
+       * following transaction if any.
+       */
+      msf_negotiated_cell_delete(cell_to_delete);
+    } else {
+      /* do nothing */
+    }
+  }
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -153,7 +181,7 @@ send_response(const linkaddr_t *peer_addr,
 }
 /*---------------------------------------------------------------------------*/
 void
-msf_sixp_delete_send_request(void)
+msf_sixp_delete_send_request(msf_negotiated_cell_type_t cell_type)
 {
   const linkaddr_t *parent_addr = msf_housekeeping_get_parent_addr();
   const sixp_pkt_type_t type = SIXP_PKT_TYPE_REQUEST;
@@ -164,38 +192,43 @@ msf_sixp_delete_send_request(void)
                            sizeof(sixp_pkt_cell_options_t) +
                            sizeof(sixp_pkt_num_cells_t) +
                            cell_list_len);
-  uint8_t cell_to_delete[sizeof(sixp_pkt_cell_t)];
+  uint8_t cell_list[sizeof(sixp_pkt_cell_t)];
   uint8_t body[body_len];
-  sixp_pkt_cell_options_t cell_options = SIXP_PKT_CELL_OPTION_TX;
+  sixp_pkt_cell_options_t cell_options;
   const sixp_pkt_num_cells_t num_cells = 1;
+  tsch_link_t *cell_to_delete;
 
   assert(parent_addr != NULL);
 
   nbr = tsch_queue_get_nbr(parent_addr);
   if(nbr == NULL ||
-     msf_negotiated_cell_is_scheduled_tx(nbr) == false) {
+     (cell_to_delete =
+      msf_negotiated_cell_get_cell_to_delete(parent_addr, cell_type)) == NULL) {
     /* this shouldn't happen, by the way */
-    LOG_ERR("delete_send_request: no negotiated cells scheduled with ");
+    LOG_ERR("delete_send_request: no negotiated %s cells scheduled with ",
+            cell_type == MSF_NEGOTIATED_CELL_TYPE_TX ? "TX" : "RX");
     LOG_ERR_LLADDR(parent_addr);
     LOG_ERR_("\n");
   } else {
-    tsch_link_t *tx_cell = msf_negotiated_cell_get_tx_cell(nbr);
-    assert(tx_cell != NULL);
-    /* delete the first one in nbr */
-    msf_sixp_set_cell_params(cell_to_delete,
-                             tx_cell->timeslot, tx_cell->channel_offset);
+    if(cell_type == MSF_NEGOTIATED_CELL_TYPE_TX) {
+      cell_options = SIXP_PKT_CELL_OPTION_TX;
+    } else {
+      cell_options = SIXP_PKT_CELL_OPTION_RX;
+    }
+    msf_sixp_set_cell_params(cell_list, cell_to_delete);
 
     /* build a body of DELETE request */
     memset(body, 0, body_len);
     if(sixp_pkt_set_cell_options(type, code,
                                  cell_options, body, body_len) < 0 ||
        sixp_pkt_set_num_cells(type, code, num_cells, body, body_len) < 0 ||
-       sixp_pkt_set_cell_list(type, code, cell_to_delete, cell_list_len,
+       sixp_pkt_set_cell_list(type, code, cell_list, cell_list_len,
                               0, body, body_len) < 0) {
       LOG_ERR("cannot build a DELETE request\n");
       msf_sixp_start_request_wait_timer();
     } else if(sixp_output(type, code, MSF_SFID, body, body_len, parent_addr,
-                          NULL, NULL, 0) < 0) {
+                          sent_callback_initiator,
+                          cell_to_delete, sizeof(cell_to_delete)) < 0) {
       LOG_ERR("failed to send a DELETE request to \n");
       LOG_ERR_LLADDR(parent_addr);
       LOG_ERR_("\n");

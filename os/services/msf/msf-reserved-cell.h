@@ -29,6 +29,10 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         MSF Reserved Cell APIs
  * \author
@@ -43,13 +47,40 @@
 #include "net/linkaddr.h"
 #include "net/mac/tsch/tsch.h"
 
+/**
+ * \brief Return the number of reserved cells for a peer
+ * \param peer_addr The MAC address of the target peer
+ */
 int msf_reserved_cell_get_num_cells(const linkaddr_t *peer_addr);
+
+/**
+ * \breif Return a reserved cell matching conditions
+ * \param peer_addr The MAC address of a target cell
+ * \param slot_offset The slot offset of a target cell
+ * \param channel_offset The channel offset of a target cell
+ * \param non-NULL if found, otherwise NULL
+ */
 tsch_link_t *msf_reserved_cell_get(const linkaddr_t *peer_addr,
                                    int32_t slot_offset,
                                    int32_t channel_offset);
+
+/**
+ * \brief Add (reserve) a cell in the slotframe for negotiated cells
+ * \param peer_addr The MAC address of the peer
+ * \param cell_type Type of a reserved cell (TX or RX)
+ * \param slot_offset The slot offset of a reserved cell
+ * \param channel_offset The channel offset of a reserved cell
+ */
 tsch_link_t *msf_reserved_cell_add(const linkaddr_t *peer_addr,
+                                   msf_negotiated_cell_type_t cell_type,
                                    int32_t slot_offset,
                                    int32_t channel_offset);
+
+/**
+ * \brief Delete all the cells reserved for a peer
+ * \param peer_addr The MAC address of the peer
+ */
 void msf_reserved_cell_delete_all(const linkaddr_t *peer_addr);
 
 #endif /* _MSF_RESERVED_CELL_H_ */
+/** @} */
