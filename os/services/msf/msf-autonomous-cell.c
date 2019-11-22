@@ -141,6 +141,12 @@ delete_cell(tsch_link_t *cell)
            cell->timeslot, cell->channel_offset);
 }
 /*---------------------------------------------------------------------------*/
+tsch_slotframe_t *
+msf_autonomous_cell_get_slotframe(void)
+{
+  return slotframe;
+}
+/*---------------------------------------------------------------------------*/
 int
 msf_autonomous_cell_activate(void)
 {
@@ -155,15 +161,10 @@ msf_autonomous_cell_activate(void)
   return our_autonomous_rx_cell != NULL ? 0 : -1;
 }
 /*---------------------------------------------------------------------------*/
-tsch_slotframe_t *
-msf_autonomous_cell_get_slotframe(void)
-{
-  return slotframe;
-}
-/*---------------------------------------------------------------------------*/
 void
 msf_autonomous_cell_deactivate(void)
 {
+  msf_autonomous_cell_delete_tx(NULL);
   delete_cell(our_autonomous_rx_cell);
   our_autonomous_rx_cell = NULL;
   slotframe = NULL;

@@ -29,6 +29,10 @@
  */
 
 /**
+ * \addtogroup msf
+ * @{
+ */
+/**
  * \file
  *         MSF Housekeeping
  * \author
@@ -41,17 +45,63 @@
 #include "net/linkaddr.h"
 #include "services/shell/shell.h"
 
+/**
+ * \brief Start the housekeeping process
+ */
 void msf_housekeeping_start(void);
+
+/**
+ * \brief Stop the housekeeping process
+ */
 void msf_housekeeping_stop(void);
+
+/**
+ * \brief Set the parent (time-source) address
+ * \param new_parent The MAC address of the new parent
+ */
 void msf_housekeeping_set_parent_addr(const linkaddr_t *new_parent);
+
+/**
+ * \brief Return the parent address
+ * \return The MAC address of the parent if available, otherwise NULL
+ */
 const linkaddr_t * msf_housekeeping_get_parent_addr(void);
-void msf_housekeeping_update_num_cells_used(uint16_t count);
-int msf_housekeeping_delete_cell_to_relocate(void);
+
+/**
+ * \brief Delete a cell to be relocated
+ */
+void msf_housekeeping_delete_cell_to_relocate(void);
+
+/**
+ * \brief Resolve schedule inconsistency
+ * \param peer_addr The MAC address of the peer to which we detecte
+ * inconsitency in the schedule
+ * \details This call triggers a CLEAR transaction
+ */
 void msf_housekeeping_resolve_inconsistency(const linkaddr_t *peer_addr);
+
+/**
+ * \brief Schedule to delete a cell
+ * \param cell A pointer to a negotiated cell to delete
+ */
 void msf_housekeeping_delete_cell_later(tsch_link_t *cell);
+
+/**
+ * \brief Show scheduled negotiated cells in the shell
+ * \param output A pointer to shell_output_func
+ */
 void msf_housekeeping_show_negotiated_cells(shell_output_func output);
+
+/**
+ * \brief Show scheduled automated cells in the shell
+ * \param output A pointer to shell_output_func
+ */
 void msf_housekeeping_show_autonomous_cells(shell_output_func output);
-uint16_t msf_housekeeping_get_required_tx_cells(void);
-uint16_t msf_housekeeping_get_num_tx_cells_elapsed(void);
-uint16_t msf_housekeeping_get_num_tx_cells_used(void);
+
+/**
+ * \brief Show MSF counters in the shell
+ * \param output A pointer to shell_output_func
+ */
+void msf_housekeeping_show_counters(shell_output_func output);
 #endif /* !_MSF_HOUSEKEEPING_H_ */
+/** @} */

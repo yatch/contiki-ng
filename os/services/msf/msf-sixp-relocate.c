@@ -153,7 +153,8 @@ sent_callback_responder(void *arg, uint16_t arg_len,
       channel_offset = reserved_cell->channel_offset;
       msf_reserved_cell_delete_all(dest_addr);
 
-      if(msf_negotiated_cell_add(MSF_NEGOTIATED_RX_CELL, dest_addr,
+      /* RELOCATE can happen only with negotiated RX cells */
+      if(msf_negotiated_cell_add(dest_addr, MSF_NEGOTIATED_CELL_TYPE_RX,
                                  slot_offset, channel_offset) < 0) {
         /* this allocation failure could cause schedule inconsistency */
         LOG_ERR("failed to relocate\n");
@@ -182,7 +183,7 @@ send_response(const linkaddr_t *peer_addr,
 {
   tsch_link_t *reserved_cell;
   tsch_link_t *cell_to_relocate;
-  const uint8_t *cell_to_return;
+  sixp_pkt_cell_t cell_to_return;
   sixp_pkt_rc_t rc;
 
   assert(peer_addr != NULL);
@@ -193,7 +194,6 @@ send_response(const linkaddr_t *peer_addr,
     rc = SIXP_PKT_RC_ERR;
     reserved_cell = NULL;
     cell_to_relocate = NULL;
-    cell_to_return = NULL;
   } else if((cell_to_relocate =
              msf_sixp_find_scheduled_cell(peer_addr,
                                           LINK_OPTION_RX,
@@ -201,28 +201,26 @@ send_response(const linkaddr_t *peer_addr,
                                           relocation_cell_list_len)) == NULL) {
     rc = SIXP_PKT_RC_ERR_CELLLIST;
     reserved_cell = NULL;
-    cell_to_return = NULL;
   } else {
     rc = SIXP_PKT_RC_SUCCESS;
+    /* RELOCATE can happen only with negotiated RX cells */
     if((reserved_cell =
              msf_sixp_reserve_one_cell(peer_addr,
+                                       MSF_NEGOTIATED_CELL_TYPE_RX,
                                        candidate_cell_list,
                                        candidate_cell_list_len)) == NULL) {
       LOG_ERR("cannot reserve a cell; going to send an empty CellList\n");
-      cell_to_return = NULL;
     } else {
-      cell_to_return = msf_sixp_find_specified_cell(reserved_cell,
-                                                    candidate_cell_list,
-                                                    candidate_cell_list_len);
-      assert(cell_to_return != NULL);
+      msf_sixp_set_cell_params((uint8_t *)&cell_to_return, reserved_cell);
     }
   }
 
   if(sixp_output(SIXP_PKT_TYPE_RESPONSE, (sixp_pkt_code_t)(uint8_t)rc,
-                 MSF_SFID, cell_to_return,
-                 cell_to_return == NULL ? 0 : sizeof(sixp_pkt_cell_t),
+                 MSF_SFID,
+                 reserved_cell == NULL ? NULL : (uint8_t *)&cell_to_return,
+                 reserved_cell == NULL ? 0 : sizeof(sixp_pkt_cell_t),
                  peer_addr, sent_callback_responder, cell_to_relocate,
-                 cell_to_relocate == NULL ? 0 : sizeof(tsch_link_t)) < 0) {
+                 reserved_cell == NULL ? 0 : sizeof(tsch_link_t)) < 0) {
     LOG_ERR("failed to send a response to ");
     LOG_ERR_LLADDR(peer_addr);
     LOG_ERR_("\n");
@@ -257,11 +255,11 @@ msf_sixp_relocate_send_request(const tsch_link_t *cell_to_relocate)
   assert(parent_addr != NULL);
   assert(cell_to_relocate != NULL);
 
-  msf_sixp_set_cell_params(relocation_cell_list,
-                           cell_to_relocate->timeslot,
-                           cell_to_relocate->channel_offset);
+  msf_sixp_set_cell_params(relocation_cell_list, cell_to_relocate);
+  /* RELOCATION can happen only with negotiated TX cells */
   candidate_cell_list_len = msf_sixp_fill_cell_list(
-    parent_addr, candidate_cell_list, sizeof(candidate_cell_list));
+    parent_addr, MSF_NEGOTIATED_CELL_TYPE_TX,
+    candidate_cell_list, sizeof(candidate_cell_list));
 
   memset(body, 0, sizeof(body));
   body_len = (sizeof(sixp_pkt_metadata_t) +
@@ -371,11 +369,11 @@ msf_sixp_relocate_recv_response(const linkaddr_t *peer_addr, sixp_pkt_rc_t rc,
       if(msf_reserved_cell_get(peer_addr, slot_offset, channel_offset)) {
         /* this is a cell which we proposed in the request */
         msf_reserved_cell_delete_all(peer_addr);
-        if(msf_negotiated_cell_add(MSF_NEGOTIATED_TX_CELL, peer_addr,
-                                   slot_offset, channel_offset) < 0 ||
-          msf_housekeeping_delete_cell_to_relocate() < 0) {
+        if(msf_negotiated_cell_add(peer_addr, MSF_NEGOTIATED_CELL_TYPE_TX,
+                                   slot_offset, channel_offset) < 0) {
           msf_housekeeping_resolve_inconsistency(peer_addr);
         } else {
+          msf_housekeeping_delete_cell_to_relocate();
           /* all good */
         }
       }

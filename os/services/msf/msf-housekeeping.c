@@ -46,8 +46,9 @@
 #include "services/shell/shell.h"
 
 #include "msf.h"
-#include "msf-negotiated-cell.h"
 #include "msf-autonomous-cell.h"
+#include "msf-negotiated-cell.h"
+#include "msf-num-cells.h"
 #include "msf-sixp.h"
 
 #include "sys/log.h"
@@ -57,57 +58,13 @@
 /* variables */
 static linkaddr_t parent_addr_storage;
 static linkaddr_t *parent_addr;
-static uint16_t num_required_upward_cells;
-static uint16_t num_cells_elapse;
-static uint16_t num_cells_used;
 static tsch_link_t *cell_to_relocate;
 
 PROCESS(msf_housekeeping_process, "MSF housekeeping");
 
 /* static functions */
-static void update_num_required_upward_cells(void);
 static void exec_postponed_cell_deletion(tsch_slotframe_t *slotframe);
 
-/*---------------------------------------------------------------------------*/
-static void
-update_num_required_upward_cells(void)
-{
-  unsigned int num_negotiated_tx_cells;
-  num_negotiated_tx_cells = msf_negotiated_cell_get_num_tx_cells(parent_addr);
-
-  /*
-   * We're evaluating NumCellsUsed/NumCellsElapse, although we cannot
-   * have a precise usage value as described in the MSF
-   * draft. NumCellsUsed could be larger than NumCellsElapse. We may
-   * overcount or undercount the number of elapsed negotiated
-   * cells. In addition, num_cells_used may have a count of the
-   * autonomous TX cell.
-   */
-  LOG_INFO("NumCellsElapsed: %u, NumCellsUsed: %u,"
-           "NumRequiredUpwardcells: %u\n",
-           num_cells_elapse, num_cells_used, num_required_upward_cells);
-
-  if(num_cells_used > MSF_LIM_NUM_CELLS_USED_HIGH &&
-     num_negotiated_tx_cells < MSF_MAX_NUM_NEGOTIATED_TX_CELLS &&
-     num_required_upward_cells < (num_negotiated_tx_cells + 1)) {
-    num_required_upward_cells = num_negotiated_tx_cells + 1;
-    LOG_INFO("increment NumRequiredUpwardCells to %u; ",
-             num_required_upward_cells);
-    LOG_INFO_("going to add another negotiated TX cell\n");
-  } else if(num_cells_used < MSF_LIM_NUM_CELLS_USED_LOW &&
-            num_negotiated_tx_cells > 1 &&
-            num_required_upward_cells > (num_negotiated_tx_cells - 1)) {
-    num_required_upward_cells = num_negotiated_tx_cells - 1;
-    LOG_INFO("decrement NumRequiredUpwardCells to %u; ",
-             num_required_upward_cells);
-    LOG_INFO_("going to delete a negotiated TX cell\n");
-  } else {
-    /*
-     *  We have a right amount of negotiated cells for the latest
-     *  traffic
-     */
-  }
-}
 /*---------------------------------------------------------------------------*/
 static void
 exec_postponed_cell_deletion(tsch_slotframe_t *slotframe)
@@ -134,15 +91,14 @@ exec_postponed_cell_deletion(tsch_slotframe_t *slotframe)
 PROCESS_THREAD(msf_housekeeping_process, ev, data)
 {
   static struct etimer et;
-  static struct timer t;
+  static struct timer t_col, t_gc;
   const clock_time_t slotframe_interval = (CLOCK_SECOND /
                                            TSCH_SLOTS_PER_SECOND *
                                            MSF_SLOTFRAME_LENGTH);
-  unsigned int num_negotiated_tx_cells;
-
   PROCESS_BEGIN();
   etimer_set(&et, slotframe_interval);
-  timer_set(&t, MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN * 60 * CLOCK_SECOND);
+  timer_set(&t_col, MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN * 60 * CLOCK_SECOND);
+  timer_set(&t_gc, MSF_HOUSEKEEPING_GC_PERIOD_MIN * 60 * CLOCK_SECOND);
 
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_POLL ||
@@ -158,47 +114,41 @@ PROCESS_THREAD(msf_housekeeping_process, ev, data)
         /* stopping this process */
         break;
       }
-    } else { /* etimer_expired(&et)  */
-      if(parent_addr == NULL) {
-        continue;
-      } else {
-        /* go through */
-      }
+    } else {
+      /* etimer_expired(&et); go through */
     }
 
     /* update the counters */
-    num_negotiated_tx_cells = msf_negotiated_cell_get_num_tx_cells(parent_addr);
-    num_cells_elapse += num_negotiated_tx_cells;
+    msf_num_cells_update();
 
-    if(num_cells_elapse >= MSF_MAX_NUM_CELLS) {
-      update_num_required_upward_cells();
-      /* reset the counters */
-      num_cells_elapse = 0;
-      num_cells_used = 0;
+    if(timer_expired(&t_gc)) {
+      /* handle unused negotiated cells */
+      msf_negotiated_cell_delete_unused_cells();
+      timer_restart(&t_gc);
     }
 
-    /* decide to relocate a cell or not */
-    if(timer_expired(&t) && cell_to_relocate == NULL) {
-      cell_to_relocate = msf_negotiated_cell_get_cell_to_relocate();
-      timer_restart(&t);
+    if(timer_expired(&t_col)) {
+      /* decide to relocate a cell or not */
+      if(cell_to_relocate == NULL && parent_addr) {
+        cell_to_relocate = msf_negotiated_cell_get_cell_to_relocate();
+      }
+      timer_restart(&t_col);
     }
 
     /* start an ADD or a DELETE transaction if necessary and possible */
-    if(sixp_trans_find(parent_addr) == NULL &&
+    if(parent_addr != NULL &&
+       sixp_trans_find(parent_addr) == NULL &&
        msf_sixp_is_request_wait_timer_expired()) {
-      if(num_negotiated_tx_cells < num_required_upward_cells) {
-        msf_sixp_add_send_request();
-      } else if(num_negotiated_tx_cells > num_required_upward_cells) {
-        msf_sixp_delete_send_request();
-      } else if(cell_to_relocate != NULL) {
+      if(cell_to_relocate != NULL) {
         msf_sixp_relocate_send_request(cell_to_relocate);
       } else {
-        /* nothing to do */
+        msf_num_cells_trigger_6p_transaction();
       }
     } else {
       /*
-       * We cannot send a request since we're busy on an on-going
-       * transaction with the parent. try it later.
+       * We cannot send a request since we don't have the parent or
+       * we're busy on an on-going transaction with the parent. try it
+       * later.
        */
     }
   }
@@ -210,9 +160,7 @@ void
 msf_housekeeping_start(void)
 {
   parent_addr = NULL;
-  num_required_upward_cells = 1;
-  num_cells_elapse = 0;
-  num_cells_used = 0;
+  msf_num_cells_reset(true);
   cell_to_relocate = NULL;
   process_start(&msf_housekeeping_process, NULL);
 }
@@ -246,35 +194,33 @@ msf_housekeeping_set_parent_addr(const linkaddr_t *new_parent)
       sixp_trans_abort(trans);
     }
 
-    if(msf_negotiated_cell_get_num_tx_cells(parent_addr) > 0) {
+    if(msf_negotiated_cell_get_num_cells(MSF_NEGOTIATED_CELL_TYPE_TX,
+                                         parent_addr) > 0 ||
+       msf_negotiated_cell_get_num_cells(MSF_NEGOTIATED_CELL_TYPE_RX,
+                                         parent_addr) > 0) {
       msf_sixp_clear_send_request(parent_addr);
     }
   }
 
-  /* reset the counters */
-  num_cells_elapse = 0;
-  num_cells_used = 0;
-  cell_to_relocate = NULL;
   /* start allocating negotiated cells with new_parent */
   /* reset the timer so as to send a request immediately */
+  cell_to_relocate = NULL;
   msf_sixp_stop_request_wait_timer();
   assert(msf_sixp_is_request_wait_timer_expired());
 
   if(new_parent == NULL) {
     parent_addr = NULL;
-    /* reset the counter of required negotiated TX cells */
-    LOG_DBG("resetting num_required_upward_cells to 1\n");
-    num_required_upward_cells = 1;
+    msf_num_cells_reset(true);
   } else {
     parent_addr = &parent_addr_storage;
     linkaddr_copy(parent_addr, new_parent);
-    /* keep num_required_upward_cells and use it for the new parent */
-    LOG_DBG("we're going to schedule %u negotiated TX cell%s",
-            num_required_upward_cells,
-            num_required_upward_cells == 1 ? " " : "s ");
-    LOG_DBG_("with the new parent\n");
+    /*
+     * keep the numbers of cells required and use them for the new
+     * parent
+     */
+    msf_num_cells_reset(false);
     if(sixp_trans_find(parent_addr) == NULL) {
-      msf_sixp_add_send_request();
+      msf_sixp_add_send_request(MSF_NEGOTIATED_CELL_TYPE_TX);
     } else {
       /* we may have a transaction with the new parent */
       msf_sixp_start_request_wait_timer();
@@ -289,23 +235,14 @@ msf_housekeeping_get_parent_addr(void)
 }
 /*---------------------------------------------------------------------------*/
 void
-msf_housekeeping_update_num_cells_used(uint16_t count)
-{
-  num_cells_used += count;
-}
-/*---------------------------------------------------------------------------*/
-int
 msf_housekeeping_delete_cell_to_relocate(void)
 {
-  int ret;
   if(cell_to_relocate == NULL) {
     /* do nothing */
-    ret = 0;
   } else {
     msf_negotiated_cell_delete(cell_to_relocate);
     cell_to_relocate = NULL;
   }
-  return ret;
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -337,6 +274,7 @@ msf_housekeeping_show_negotiated_cells(shell_output_func output)
     if(slotframe == NULL || list_head(slotframe->links_list) == NULL) {
       SHELL_OUTPUT(output, " (none)\n");
     } else {
+      uint16_t num_tx;
       SHELL_OUTPUT(output, "\n type, sl_off, ch_off,  PDR, addr\n");
       for(tsch_link_t *cell = list_head(slotframe->links_list);
           cell != NULL;
@@ -346,12 +284,17 @@ msf_housekeeping_show_negotiated_cells(shell_output_func output)
                      cell->link_options & LINK_OPTION_TX ? "TX" : "RX",
                      cell->timeslot,
                      cell->channel_offset);
-        if(cell->link_options & LINK_OPTION_TX) {
+        if(cell->link_options & LINK_OPTION_RESERVED_LINK ||
+           cell->link_options & LINK_OPTION_LINK_TO_DELETE) {
+          /* skip it */
+          continue;
+        } else if(cell->link_options & LINK_OPTION_TX &&
+                  (num_tx = msf_negotiated_cell_get_num_tx(cell)) > 0) {
           SHELL_OUTPUT(output, "%3u%%, ",
-                       msf_negotiated_cell_get_num_tx_ack(cell)* 100 /
-                       msf_negotiated_cell_get_num_tx(cell));
+                       msf_negotiated_cell_get_num_tx_ack(cell) * 100 /
+                       num_tx);
         } else {
-          SHELL_OUTPUT(output, ", N/A, ");
+          SHELL_OUTPUT(output, " N/A, ");
         }
         shell_output_lladdr(output, &cell->addr);
         SHELL_OUTPUT(output, "\n");
@@ -386,23 +329,5 @@ msf_housekeeping_show_autonomous_cells(shell_output_func output)
       }
     }
   }
-}
-/*---------------------------------------------------------------------------*/
-uint16_t
-msf_housekeeping_get_required_tx_cells(void)
-{
-  return num_required_upward_cells;
-}
-/*---------------------------------------------------------------------------*/
-uint16_t
-msf_housekeeping_get_num_tx_cells_elapsed(void)
-{
-  return num_cells_elapse;
-}
-/*---------------------------------------------------------------------------*/
-uint16_t
-msf_housekeeping_get_num_tx_cells_used(void)
-{
-  return num_cells_used;
 }
 /*---------------------------------------------------------------------------*/
