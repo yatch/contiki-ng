@@ -176,7 +176,7 @@ msf_callback_packet_recv(const struct tsch_asn_t *asn,
 void
 msf_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 {
-  if(msf_is_activated()) {
+  if(msf_is_activated() && tsch_is_coordinator == 0) {
     uip_ipaddr_t *ipaddr;
     const linkaddr_t *linkaddr;
 
