@@ -126,7 +126,10 @@ void update(msf_negotiated_cell_type_t cell_type)
       LOG_INFO_("going to add another negotiated %s cell\n",
                 cell_type == MSF_NEGOTIATED_CELL_TYPE_TX ? "TX" : "RX");
     } else if(*num_cells_used < MSF_LIM_NUM_CELLS_USED_LOW &&
-              *num_cells_scheduled > 1 &&
+              ((cell_type == MSF_NEGOTIATED_CELL_TYPE_TX &&
+                *num_cells_scheduled > 1) ||
+               (cell_type == MSF_NEGOTIATED_CELL_TYPE_RX &&
+                *num_cells_scheduled > 0)) &&
               *num_cells_required > (*num_cells_scheduled - 1)) {
       *num_cells_required = *num_cells_scheduled - 1;
       LOG_INFO("decrement NumCellsRequred to %u; ",
