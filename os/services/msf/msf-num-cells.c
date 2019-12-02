@@ -56,6 +56,7 @@ static struct {
   uint16_t elapsed;
   uint16_t used;
 } tx_num_cells, rx_num_cells;
+static bool need_keep_alive = false;
 
 /*---------------------------------------------------------------------------*/
 static
@@ -136,6 +137,15 @@ void update(msf_negotiated_cell_type_t cell_type)
                *num_cells_required);
       LOG_INFO_("going to delete a negotiated %s cell\n",
                 cell_type == MSF_NEGOTIATED_CELL_TYPE_TX ? "TX" : "RX");
+    } else if(cell_type == MSF_NEGOTIATED_CELL_TYPE_TX &&
+              *num_cells_used == 0 &&
+              *num_cells_scheduled > 0){
+      /*
+       * Send a keep-alive message, which is a COUNT request, to
+       * prevent the parent from removing negotiated cells scheduled
+       * with us.
+       */
+      need_keep_alive = true;
     } else {
       /*
        *  We have a right amount of negotiated cells for the latest
@@ -151,6 +161,8 @@ void update(msf_negotiated_cell_type_t cell_type)
 void
 msf_num_cells_reset(bool clear_num_cells_required)
 {
+  need_keep_alive = false;
+
   tx_num_cells.scheduled = 0;
   tx_num_cells.elapsed = 0;
   tx_num_cells.used = 0;
@@ -201,6 +213,9 @@ msf_num_cells_trigger_6p_transaction(void)
     msf_sixp_delete_send_request(MSF_NEGOTIATED_CELL_TYPE_TX);
   } else if(rx_num_cells.scheduled > rx_num_cells.required) {
     msf_sixp_delete_send_request(MSF_NEGOTIATED_CELL_TYPE_RX);
+  } else if(need_keep_alive) {
+    msf_sixp_count_send_request();
+    need_keep_alive = false;
   } else {
     /* nothing to do */
   }

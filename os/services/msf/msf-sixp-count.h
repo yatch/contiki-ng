@@ -28,56 +28,40 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "contiki.h"
-#include "contiki-net.h"
+/**
+ * \addtogroup msf
+ * @{
+ */
+/**
+ * \file
+ *         MSF 6P COUNT handlers
+ * \author
+ *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
+ */
 
-#include "net/mac/tsch/sixtop/sixtop.h"
-#include "services/msf/msf.h"
-#include "services/shell/serial-shell.h"
+#ifndef _MSF_SIXP_COUNT_H_
+#define _MSF_SIXP_COUNT_H_
 
-#include "lib/sensors.h"
+#include "net/linkaddr.h"
 
-#include "sys/log.h"
-#define LOG_MODULE "APP"
-#define LOG_LEVEL LOG_LEVEL_MAIN
+/**
+ * \brief Send a COUNT request
+ */
+void msf_sixp_count_send_request(void);
 
-PROCESS(msf_node_process, "MSF node");
-AUTOSTART_PROCESSES(&msf_node_process);
+/**
+ * \brief Handler for reception of a COUNT request
+ * \param peer_addr The source MAC address of the request
+ */
+void msf_sixp_count_recv_request(const linkaddr_t *peer_addr,
+                                 const uint8_t *body, uint16_t body_len);
 
-PROCESS_THREAD(msf_node_process, ev, data)
-{
-  static struct etimer et;
-  static struct udp_socket s;
-  static const uint8_t app_data[] = "data";
-  uip_ipaddr_t root_ipaddr;
+/**
+ * \brief Handler for reception of a response for COUNT
+ * \param peer_addr The source MAC address of the response
+ * \param rc Return code in the response
+ */
+void msf_sixp_count_recv_response(const linkaddr_t *peer_addr,
+                                  sixp_pkt_rc_t rc);
 
-  PROCESS_BEGIN();
-
-  serial_shell_init();
-  sixtop_add_sf(&msf);
-  LOG_INFO("APP_SEND_INTERVAL: %u\n", APP_SEND_INTERVAL);
-  if(APP_SEND_INTERVAL > 0) {
-    etimer_set(&et, APP_SEND_INTERVAL);
-
-    if(udp_socket_register(&s, NULL, NULL) < 0 ||
-       udp_socket_bind(&s, APP_UDP_PORT) < 0) {
-      LOG_ERR("CRITICAL ERROR: socket initialization failed\n");
-    } else {
-      while(1) {
-        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-        etimer_reset(&et);
-        if(NETSTACK_ROUTING.node_is_reachable() &&
-           NETSTACK_ROUTING.get_root_ipaddr(&root_ipaddr) &&
-           msf_is_ready() &&
-           udp_socket_sendto(&s, app_data, sizeof(app_data),
-                             &root_ipaddr, APP_UDP_PORT) > 0) {
-          LOG_DBG("send app data\n");
-        }
-      }
-    }
-  } else {
-    /* nothing to do */
-  }
-
-  PROCESS_END();
-}
+#endif /* !_MSF_SIXP_COUNT_H_ */
