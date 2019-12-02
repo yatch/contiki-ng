@@ -32,9 +32,9 @@
 
 #include "net/ipv6/uip.h"
 
-#if MAC_CONF_WITH_TSCH
 #include "net/mac/tsch/tsch.h"
-#endif /* MAC_CONF_WITH_TSCH */
+#include "net/mac/tsch/sixtop/sixtop.h"
+#include "services/msf/msf.h"
 
 PROCESS(rpl_router_process, "RPL Router Process");
 AUTOSTART_PROCESSES(&rpl_router_process);
@@ -44,9 +44,8 @@ PROCESS_THREAD(rpl_router_process, ev, data)
 {
   PROCESS_BEGIN();
 
-#if MAC_CONF_WITH_TSCH
   tsch_set_coordinator(1);
-#endif
+  sixtop_add_sf(&msf);
 
   PROCESS_END();
 };

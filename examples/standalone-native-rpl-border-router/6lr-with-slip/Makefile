@@ -4,10 +4,10 @@ CONTIKI = ../../..
 
 PLATFORMS_EXCLUDE = native
 
+MAKE_MAC = MAKE_MAC_TSCH
+MODULES += os/net/mac/tsch/sixtop
+MODULES += os/services/msf
 MODULES += os/services/demux/mac-demux
-ifeq ($(MAKE_WITH_ORCHESTRA), 1)
-MODULES += os/services/orchestra
-endif
 
 CFLAGS += -I..
 

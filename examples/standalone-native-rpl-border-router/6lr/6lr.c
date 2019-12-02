@@ -30,6 +30,10 @@
 
 #include "contiki.h"
 
+#include "net/mac/tsch/sixtop/sixtop.h"
+#include "services/msf/msf.h"
+#include "services/shell/serial-shell.h"
+
 PROCESS(rpl_router_process, "RPL Router Process");
 AUTOSTART_PROCESSES(&rpl_router_process);
 
@@ -39,6 +43,8 @@ PROCESS_THREAD(rpl_router_process, ev, data)
   PROCESS_BEGIN();
 
   /* add something to do if you want */
+  serial_shell_init();
+  sixtop_add_sf(&msf);
 
   PROCESS_END();
 };

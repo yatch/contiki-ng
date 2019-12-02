@@ -2,8 +2,9 @@ CONTIKI_PROJECT = 6lr
 all: $(CONTIKI_PROJECT)
 CONTIKI = ../../..
 
-ifeq ($(MAKE_WITH_ORCHESTRA), 1)
-MODULES += os/services/orchestra
-endif
+MAKE_MAC = MAKE_MAC_TSCH
+MODULES += os/net/mac/tsch/sixtop
+MODULES += os/services/msf
+MODULES += os/services/shell
 
 include $(CONTIKI)/Makefile.include
