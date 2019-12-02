@@ -104,6 +104,23 @@
 #endif /* MSF_CONF_LIM_NUM_CELLS_USED_HIGH */
 
 /**
+ * \brief The initial minimum value of NumCellsUsed to add a *RX*
+ * negotiated cell.
+ *
+ * \details This value is used only while there is no negotiated RX
+ * cell scheduled. This value is expected to have a smaller value than
+ * MSF_CONF_LIM_NUM_CELLS_USED_HIGH to take into account the fact that
+ * an autonomous RX cell is a shared cell, where the retransmission
+ * backoff is performed.
+ */
+#ifdef MSF_CONF_INITIAL_LIM_NUM_RX_CELLS_USED_HIGH
+#define MSF_INITIAL_LIM_NUM_RX_CELLS_USED_HIGH \
+  MSF_CONF_INITIAL_LIM_NUM_RX_CELLS_USED_HIGH
+#else
+#define MSF_INITIAL_LIM_NUM_RX_CELLS_USED_HIGH 50
+#endif /* MSF_CONF_LIM_NUM_CELLS_USED_HIGH */
+
+/**
  * \brief The maximum value of NumCellsUsed to delete a negotiated cell
  */
 #ifdef MSF_CONF_LIM_NUM_CELLS_USED_LOW
