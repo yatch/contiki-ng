@@ -49,6 +49,7 @@
 
 #include "msf-sixp-add.h"
 #include "msf-sixp-clear.h"
+#include "msf-sixp-count.h"
 #include "msf-sixp-delete.h"
 #include "msf-sixp-relocate.h"
 
