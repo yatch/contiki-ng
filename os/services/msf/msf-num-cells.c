@@ -94,9 +94,9 @@ void update(msf_negotiated_cell_type_t cell_type)
     num_cells_elapsed = &rx_num_cells.elapsed;
     num_cells_required = &rx_num_cells.required;
     if(num_cells_scheduled > 0) {
-      lim_num_cells_used_high = MSF_INITIAL_LIM_NUM_RX_CELLS_USED_HIGH;
-    } else {
       lim_num_cells_used_high = MSF_LIM_NUM_CELLS_USED_HIGH;
+    } else {
+      lim_num_cells_used_high = MSF_INITIAL_LIM_NUM_RX_CELLS_USED_HIGH;
     }
   } else {
     return;

@@ -77,6 +77,10 @@ sent_callback_initiator(void *arg, uint16_t arg_len,
     /* do nothing */
   } else {
     LOG_ERR("COUNT transaction failed\n");
+    /*
+     * The peer may have lost cells; let's resolve the inconsistency.
+     */
+    msf_housekeeping_resolve_inconsistency(dest_addr);
   }
 }
 /*---------------------------------------------------------------------------*/
