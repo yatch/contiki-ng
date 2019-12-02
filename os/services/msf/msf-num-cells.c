@@ -68,6 +68,7 @@ void update(msf_negotiated_cell_type_t cell_type)
   uint16_t *num_cells_used;
   uint16_t *num_cells_required;
   uint16_t *num_cells_elapsed;
+  uint16_t lim_num_cells_used_high;
 
   assert(parent_addr != NULL);
 
@@ -85,12 +86,18 @@ void update(msf_negotiated_cell_type_t cell_type)
     num_cells_used = &tx_num_cells.used;
     num_cells_elapsed = &tx_num_cells.elapsed;
     num_cells_required = &tx_num_cells.required;
+    lim_num_cells_used_high = MSF_LIM_NUM_CELLS_USED_HIGH;
   } else if(cell_type == MSF_NEGOTIATED_CELL_TYPE_RX) {
     max_num_cells_scheduled = MSF_MAX_NUM_NEGOTIATED_RX_CELLS;
     num_cells_scheduled = &rx_num_cells.scheduled;
     num_cells_used = &rx_num_cells.used;
     num_cells_elapsed = &rx_num_cells.elapsed;
     num_cells_required = &rx_num_cells.required;
+    if(num_cells_scheduled > 0) {
+      lim_num_cells_used_high = MSF_LIM_NUM_CELLS_USED_HIGH;
+    } else {
+      lim_num_cells_used_high = MSF_INITIAL_LIM_NUM_RX_CELLS_USED_HIGH;
+    }
   } else {
     return;
   }
@@ -119,7 +126,7 @@ void update(msf_negotiated_cell_type_t cell_type)
              *num_cells_elapsed, *num_cells_used,
              *num_cells_scheduled, *num_cells_required);
 
-    if(*num_cells_used > MSF_LIM_NUM_CELLS_USED_HIGH &&
+    if(*num_cells_used > lim_num_cells_used_high &&
        *num_cells_scheduled < max_num_cells_scheduled &&
        *num_cells_required < (*num_cells_scheduled + 1)) {
       *num_cells_required = *num_cells_scheduled + 1;
