@@ -243,6 +243,8 @@ input_handler(sixp_pkt_type_t type, sixp_pkt_code_t code,
       msf_sixp_delete_recv_request(src_addr, body, body_len);
     } else if(code.value == SIXP_PKT_CMD_RELOCATE) {
       msf_sixp_relocate_recv_request(src_addr, body, body_len);
+    } else if(code.value == SIXP_PKT_CMD_COUNT) {
+      msf_sixp_count_recv_request(src_addr, body, body_len);
     } else if(code.value == SIXP_PKT_CMD_CLEAR) {
       msf_sixp_clear_recv_request(src_addr);
     }
@@ -256,6 +258,8 @@ input_handler(sixp_pkt_type_t type, sixp_pkt_code_t code,
     } else if(cmd == SIXP_PKT_CMD_RELOCATE) {
       msf_sixp_relocate_recv_response(src_addr,
                              (sixp_pkt_rc_t)code.value, body, body_len);
+    } else if(cmd == SIXP_PKT_CMD_COUNT) {
+      msf_sixp_count_recv_response(src_addr, (sixp_pkt_rc_t)code.value);
     } else if(cmd == SIXP_PKT_CMD_CLEAR) {
       msf_sixp_clear_recv_response(src_addr, (sixp_pkt_rc_t)code.value);
     }
