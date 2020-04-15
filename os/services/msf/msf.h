@@ -52,7 +52,6 @@
 #include "net/linkaddr.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/sixtop/sixtop.h"
-#include "services/shell/shell.h"
 
 #include "msf-conf.h"
 
@@ -112,12 +111,29 @@ void msf_activate(void);
  */
 void msf_deactivate(void);
 
+
+
+//----------------------------------------------------------------------------
+//  this is info providers for msf-shell
+struct MSFConstantInfo {
+  const char *str;
+  uint32_t val;
+} ;
+typedef struct MSFConstantInfo MSFConstantInfo;
+
 /**
- * \brief Handle a given sub-command of MSF
- * \param output A pointer to shell_output_func
- * \param args A pointer to user inputs
+ * \brief size of info list, provided by msf_constants_describe
  */
-void msf_shell_sub_cmd(shell_output_func output, char *args);
+// (sizeof(msf_constants_patern)/sizeof(MSFConstantInfo))
+#define MSFCONSTANTS_NUM 16
+
+/**
+ * \brief provide info descrition for info[MSFCONSTANTS_NUM]
+ * \arg   info - destination, where to fillin info. must be at least of size MSFCONSTANTS_NUM
+ */
+void msf_constants_describe(MSFConstantInfo* info);
+
+#include "services/msf/shell/msf-shell.h"
 
 #endif /* !_MSF_H */
 /** @} */

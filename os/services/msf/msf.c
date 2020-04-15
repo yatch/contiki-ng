@@ -63,9 +63,6 @@
 typedef void sub_cmd(shell_output_func output);
 
 /* static functions */
-static void show_help(shell_output_func output);
-static void show_constants(shell_output_func output);
-static void show_status(shell_output_func output);
 static void init(void);
 static void input_handler(sixp_pkt_type_t type, sixp_pkt_code_t code,
                           const uint8_t *body, uint16_t body_len,
@@ -77,140 +74,91 @@ static void error_handler(sixp_error_t err, sixp_pkt_cmd_t cmd,
 
 /* variables */
 static bool activated = false;
-static const struct {
-  const char *name;
-  sub_cmd *func;
-  const char *help_msg;
-} sub_cmd_list[] = {
-  { "help", show_help, "show this message" },
-  { "cnst", show_constants, "show constants (configuration parameters)" },
-  { "stat", show_status, "show current status" },
-  { "nego", msf_housekeeping_show_negotiated_cells, "show negotiated cells" },
-  { "auto", msf_housekeeping_show_autonomous_cells, "show autonomous cells" },
-  { NULL, NULL},
+
+/*---------------------------------------------------------------------------*/
+const struct MSFConstantInfo msf_constants_patern[] = {
+  {
+    "MSF Constants/Parameters:\n",  0
+  },
+  {
+    "o SLOT_LENGTH                  : %ums\n",
+    MSF_SLOT_LENGTH_MS
+  },
+  {
+    "o NUM_CH_OFFSET                : %u\n",
+    0
+  },
+  {
+    "o MAX_NUM_CELLS                : %u\n",
+    MSF_MAX_NUM_CELLS
+  },
+  {
+    "o LIM_NUM_CELLS_USED_HIGH      : %u%%\n",
+    MSF_LIM_NUM_CELLS_USED_HIGH
+  },
+  {
+    "o LIM_NUM_CELLS_USED_LOW       : %u%%\n",
+    MSF_LIM_NUM_CELLS_USED_LOW
+  },
+  {
+    "o HOUSEKEEPING_COLLISION_PERIOD: %umin\n",
+    MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN
+  },
+  {
+    "o HOUSEKEEPING_GC_PERIOD       : %umin\n",
+    MSF_HOUSEKEEPING_GC_PERIOD_MIN,
+  },
+  {
+    "o MSF_MIN_NUM_TX_FOR_RELOCATION: %u\n",
+    MSF_MIN_NUM_TX_FOR_RELOCATION
+  },
+  {
+    "o MSF_RELOCATE_PDR_THRESHOLD   : %u%%\n",
+    MSF_RELOCATE_PDR_THRESHOLD
+  },
+  {
+    "o WAIT_DURATION_MIN            : %us\n",
+    MSF_WAIT_DURATION_MIN_SECONDS
+  },
+  {
+    "o WAIT_DURATION_MAX            : %us\n",
+    MSF_WAIT_DURATION_MAX_SECONDS
+  },
+  {
+    "o MAX_NUM_NEGOTIATED_TX_CELLS  : %u\n",
+    MSF_MAX_NUM_NEGOTIATED_TX_CELLS
+  },
+  {
+    "o MAX_NUM_NEGOTIATED_RX_CELLS  : %u\n",
+    MSF_MAX_NUM_NEGOTIATED_RX_CELLS
+  },
+  {
+    NULL, 0
+  },
 };
 
-/*---------------------------------------------------------------------------*/
-static void
-show_help(shell_output_func output)
-{
-  if(output == NULL) {
-    /* do nothing */
-  } else {
-    SHELL_OUTPUT(output, "MSF commands\n");
-    for(int i = 0; sub_cmd_list[i].name != NULL; i++) {
-      SHELL_OUTPUT(output, "'> msf %s': %s\n",
-                   sub_cmd_list[i].name, sub_cmd_list[i].help_msg);
-    }
-  }
+void msf_constants_describe(MSFConstantInfo* info){
+    memcpy(info, msf_constants_patern, MSFCONSTANTS_NUM* sizeof(MSFConstantInfo) );
+    info[2].val = tsch_hopping_sequence_length.val;
 }
-/*---------------------------------------------------------------------------*/
-static void
-show_constants(shell_output_func output)
-{
-  const char *header = "MSF Constants/Parameters:\n";
-  struct {
-    char *str;
-    uint32_t val;
-  } constants[] = {
-    {
-      "o SLOTFRAME_LENGTH             : %u\n",
-      MSF_SLOTFRAME_LENGTH
-    },
-    {
-      "o SLOT_LENGTH                  : %ums\n",
-      MSF_SLOT_LENGTH_MS
-    },
-    {
-      "o NUM_CH_OFFSET                : %u\n",
-      tsch_hopping_sequence_length.val
-    },
-    {
-      "o MAX_NUM_CELLS                : %u\n",
-      MSF_MAX_NUM_CELLS
-    },
-    {
-      "o LIM_NUM_CELLS_USED_HIGH      : %u%%\n",
-      MSF_LIM_NUM_CELLS_USED_HIGH
-    },
-    {
-      "o LIM_NUM_CELLS_USED_LOW       : %u%%\n",
-      MSF_LIM_NUM_CELLS_USED_LOW
-    },
-    {
-      "o HOUSEKEEPING_COLLISION_PERIOD: %umin\n",
-      MSF_HOUSEKEEPING_COLLISION_PERIOD_MIN
-    },
-    {
-      "o HOUSEKEEPING_GC_PERIOD       : %umin\n",
-      MSF_HOUSEKEEPING_GC_PERIOD_MIN,
-    },
-    {
-      "o MSF_MIN_NUM_TX_FOR_RELOCATION: %u\n",
-      MSF_MIN_NUM_TX_FOR_RELOCATION
-    },
-    {
-      "o MSF_RELOCATE_PDR_THRESHOLD   : %u%%\n",
-      MSF_RELOCATE_PDR_THRESHOLD
-    },
-    {
-      "o WAIT_DURATION_MIN            : %us\n",
-      MSF_WAIT_DURATION_MIN_SECONDS
-    },
-    {
-      "o WAIT_DURATION_MAX            : %us\n",
-      MSF_WAIT_DURATION_MAX_SECONDS
-    },
-    {
-      "o MAX_NUM_NEGOTIATED_TX_CELLS  : %u\n",
-      MSF_MAX_NUM_NEGOTIATED_TX_CELLS
-    },
-    {
-      "o MAX_NUM_NEGOTIATED_RX_CELLS  : %u\n",
-      MSF_MAX_NUM_NEGOTIATED_RX_CELLS
-    },
-    {
-      NULL, 0
-    },
-  };
 
-  if(output == NULL) {
-    LOG_INFO(header);
-  } else {
-    SHELL_OUTPUT(output, "%s", header);
-  }
-  for(int i = 0; constants[i].str != NULL; i++) {
-    if(output == NULL) {
-      LOG_INFO(constants[i].str, constants[i].val);
-    } else {
-      SHELL_OUTPUT(output, constants[i].str, constants[i].val);
-    }
-  }
-}
-/*---------------------------------------------------------------------------*/
 static void
-show_status(shell_output_func output)
-{
-  const linkaddr_t *parent_addr;
-  if(output == NULL) {
-    /* do nothing */
-  } else {
-    SHELL_OUTPUT(output, "MSF status:\n");
-    SHELL_OUTPUT(output, "o activated           : %s\n",
-                 activated ? "yes" : "not yet");
-    SHELL_OUTPUT(output, "o parent              : ");
-    shell_output_lladdr(output,
-                        (parent_addr = msf_housekeeping_get_parent_addr()));
-    SHELL_OUTPUT(output, "\n");
-  }
+log_constants(){
+    MSFConstantInfo constants[MSFCONSTANTS_NUM];
+    msf_constants_describe(constants);
+
+    for(int i = 0; constants[i].str != NULL; i++) {
+        LOG_INFO(constants[i].str, constants[i].val);
+    }
 }
+
 /*---------------------------------------------------------------------------*/
 static void
 init(void)
 {
   static bool show_constants_now = true;
   if(show_constants_now) {
-    show_constants(NULL);
+    log_constants();
     show_constants_now = false;
   } else {
     /* skip */
@@ -390,32 +338,6 @@ msf_deactivate(void)
     msf_housekeeping_stop();
     LOG_INFO("MSF is deactivated\n");
   }
-}
-/*---------------------------------------------------------------------------*/
-void
-msf_shell_sub_cmd(shell_output_func output, char *args)
-{
-  char *next_args;
-  const char *sub_cmd;
-  assert(output != NULL);
-
-  SHELL_ARGS_INIT(args, next_args);
-  SHELL_ARGS_NEXT(args, next_args);
-
-  if(args == NULL) {
-    sub_cmd = "help";
-  } else {
-    sub_cmd = (const char*)args;
-  }
-
-  for(int i = 0; sub_cmd_list[i].name != NULL; i++) {
-    if(strcmp(sub_cmd_list[i].name, sub_cmd) == 0) {
-      sub_cmd_list[i].func(output);
-      return;
-    }
-  }
-  /* if we get here, no sub-command is found */
-  show_help(output);
 }
 /*---------------------------------------------------------------------------*/
 const sixtop_sf_t msf = {

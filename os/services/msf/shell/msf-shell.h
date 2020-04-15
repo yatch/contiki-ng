@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2019, Inria.
+ * Copyright (c) 2020, alexrayne <apexraynepe196@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,61 +30,55 @@
  */
 
 /**
- * \addtogroup msf
+ * \addtogroup link-layer
  * @{
  */
 /**
- * \file
- *         MSF Housekeeping
- * \author
- *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
+ * \defgroup msf 6TiSCH Minimal Scheduling Function (MSF)
+ * @{
  */
 
-#ifndef _MSF_HOUSEKEEPING_H_
-#define _MSF_HOUSEKEEPING_H_
+/**
+ * \file
+ *         MSF shell API
+ * \author
+ *         Yasuyuki Tanaka <yasuyuki.tanaka@inria.fr>
+ *         alexrayne <alexraynepe196@gmail.com>
+ */
 
-#include "net/linkaddr.h"
+#ifndef _MSF_SHELL_H
+#define _MSF_SHELL_H
+
+#include <stdint.h>
+
 #include "services/shell/shell.h"
 
 /**
- * \brief Start the housekeeping process
+ * \brief Handle a given sub-command of MSF
+ * \param output A pointer to shell_output_func
+ * \param args A pointer to user inputs
  */
-void msf_housekeeping_start(void);
+void msf_shell_sub_cmd(shell_output_func output, char *args);
+
 
 /**
- * \brief Stop the housekeeping process
+ * \brief Show scheduled negotiated cells in the shell
+ * \param output A pointer to shell_output_func
  */
-void msf_housekeeping_stop(void);
+void msf_housekeeping_show_negotiated_cells(shell_output_func output);
 
 /**
- * \brief Set the parent (time-source) address
- * \param new_parent The MAC address of the new parent
+ * \brief Show scheduled automated cells in the shell
+ * \param output A pointer to shell_output_func
  */
-void msf_housekeeping_set_parent_addr(const linkaddr_t *new_parent);
+void msf_housekeeping_show_autonomous_cells(shell_output_func output);
 
 /**
- * \brief Return the parent address
- * \return The MAC address of the parent if available, otherwise NULL
+ * \brief Show MSF counters in the shell
+ * \param output A pointer to shell_output_func
  */
-const linkaddr_t * msf_housekeeping_get_parent_addr(void);
+void msf_housekeeping_show_counters(shell_output_func output);
 
-/**
- * \brief Delete a cell to be relocated
- */
-void msf_housekeeping_delete_cell_to_relocate(void);
-
-/**
- * \brief Resolve schedule inconsistency
- * \param peer_addr The MAC address of the peer to which we detecte
- * inconsitency in the schedule
- * \details This call triggers a CLEAR transaction
- */
-void msf_housekeeping_resolve_inconsistency(const linkaddr_t *peer_addr);
-
-/**
- * \brief Schedule to delete a cell
- * \param cell A pointer to a negotiated cell to delete
- */
-void msf_housekeeping_delete_cell_later(tsch_link_t *cell);
-#endif /* !_MSF_HOUSEKEEPING_H_ */
+#endif /* !_MSF_H */
+/** @} */
 /** @} */
