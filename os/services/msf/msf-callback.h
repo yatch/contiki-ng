@@ -80,7 +80,7 @@ void msf_callback_packet_recv(const struct tsch_asn_t *asn,
  * \param old A pointer to the previous RPL preferred parent
  * \param new A pointer to the new RPL preferred parent
  */
-void msf_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new);
+void msf_callback_parent_switch(rpl_parent_t *old, rpl_parent_t * newone);
 
 /**
  * \brief Callback function on removal of TSCH neighbor
