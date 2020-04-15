@@ -5,7 +5,7 @@ ifeq ("$(COOJA_NOARCH)","0")
 # without COOJA_NOARCH cooja library can`t eliminate unused symbols properly
 # so need to ensure that shell willbe in mote library  
 MODULES += os/services/shell
-#endif
+endif
 endif
 
 # link msf-shell, if shell service used 
