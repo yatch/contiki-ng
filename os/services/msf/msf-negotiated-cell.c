@@ -200,7 +200,7 @@ msf_negotiated_cell_add(const linkaddr_t *peer_addr,
 
   new_cell = tsch_schedule_add_link(slotframe, cell_options,
                                     LINK_TYPE_NORMAL, peer_addr,
-                                    slot_offset, channel_offset);
+                                    slot_offset, channel_offset, 0);
 
   if(new_cell != NULL && type == MSF_NEGOTIATED_CELL_TYPE_TX) {
     if((new_cell->data = memb_alloc(&msf_negotiated_cell_data_memb)) == NULL) {
@@ -544,7 +544,7 @@ msf_negotiated_cell_get_cell_to_relocate(void)
     if(pdr < 0) {
       LOG_DBG_("PDR: N/A\n");
     } else {
-      LOG_DBG_("PDR: %d\%%n", pdr);
+      LOG_DBG_("PDR: %d\n", pdr);
     }
   }
 
@@ -552,16 +552,15 @@ msf_negotiated_cell_get_cell_to_relocate(void)
     cell_to_relocate = NULL;
   } else {
     assert(worst_pdr >= 0);
-    LOG_INFO("best PDR is %d%%, worst PDR is %u%%", best_pdr, worst_pdr);
+    LOG_INFO("best PDR is %d%%, worst PDR is %u%%\n", best_pdr, worst_pdr);
     if((best_pdr - worst_pdr) <= MSF_RELOCATE_PDR_THRESHOLD) {
       /* worst_pdr_cell is not so bad to relocate */
-      LOG_INFO_("\n");
       cell_to_relocate = NULL;
     } else {
       cell_to_relocate = worst_pdr_cell;
-      LOG_INFO_("; going to relocate a TX cell"
-                " [slot_offset: %u, channel_offset: %u]\n",
-                cell_to_relocate->timeslot, cell_to_relocate->channel_offset);
+      LOG_INFO("going to relocate a TX cell"
+               " [slot_offset: %u, channel_offset: %u]\n",
+               cell_to_relocate->timeslot, cell_to_relocate->channel_offset);
     }
   }
 
@@ -649,7 +648,7 @@ msf_negotiated_cell_delete_unused_cells(void)
       if(cell->link_options == LINK_OPTION_RX &&
          (parent_addr == NULL || linkaddr_cmp(&cell->addr, parent_addr) == 0)) {
         /*
-         * reset the state of a cell if it has "is_kept", delete it
+         * reset the state of the cell if it has "is_kept", delete it
          * otherwise
          */
         if(is_marked_as_kept(cell)) {
@@ -669,7 +668,7 @@ msf_negotiated_cell_delete_unused_cells(void)
           LOG_INFO_("\n");
           msf_negotiated_cell_delete_all(&cell->addr);
         } else {
-          LOG_WARN("Unexpected states found in a negotiated cell for ");
+          LOG_WARN("Unexpected state found in a negotiated cell for ");
           LOG_WARN_LLADDR(&cell->addr);
           LOG_WARN_("\n");
         }

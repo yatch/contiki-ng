@@ -63,9 +63,9 @@ while(true) {
       scheduled_ping = true;
     } else if(msg.indexOf("added a negotiated RX cell") !== -1) {
       /* a negotiated RX cell is scheduled at node-2 as expected */
-      /* incrase the pace */
+      /* increase the pace */
       ping_interval_ms /= 2;
-      if(ping_interval_ms < (INITIAL_PING_INTERVAL_MS / 4)) {
+      if(ping_interval_ms < (INITIAL_PING_INTERVAL_MS / 2)) {
         /* stop pinging */
         ping_interval_ms = 0;
         /* remove node-2 */

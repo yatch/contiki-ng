@@ -8,8 +8,8 @@ var node_2 = sim.getMoteWithID(2)
 var scheduled_ping = false;
 var ping_interval_ms = INITIAL_PING_INTERVAL_MS;
 
-/* this test lasts 10min (600s); GENERATE_MSG() takes a timeout value in ms */
-GENERATE_MSG(600000, "test is done");
+/* this test lasts 20min (1200s); GENERATE_MSG() takes a timeout value in ms */
+GENERATE_MSG(1200000, "test is done");
 
 function ping_to_node_2() {
   write(node_1, "ping " + NODE_2_IP_ADDR + "\n");
@@ -44,9 +44,9 @@ while(true) {
       scheduled_ping = true;
     } else if(msg.indexOf("added a negotiated RX cell") !== -1) {
       /* a negotiated RX cell is scheduled at node-2 as expected */
-      /* incrase the pace */
+      /* increase the pace */
       ping_interval_ms /= 2;
-      if(ping_interval_ms < (INITIAL_PING_INTERVAL_MS / 4)) {
+      if(ping_interval_ms < (INITIAL_PING_INTERVAL_MS / 2)) {
         /* stop pinging */
         ping_interval_ms = 0;
       }

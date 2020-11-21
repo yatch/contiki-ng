@@ -36,12 +36,15 @@
 
 #include "dev/serial-line.h"
 #include "net/mac/tsch/tsch.h"
+#include "net/packetbuf.h"
 
 #define SLOTFRAME_HANDLE 0
 #define SLOTFRAME_DURATION (                                            \
     TSCH_SCHEDULE_DEFAULT_LENGTH *                                      \
     TSCH_DEFAULT_TIMESLOT_TIMING[tsch_ts_timeslot_length] *             \
     CLOCK_SECOND / 1000000)
+
+static const linkaddr_t target_linkaddr = {{2, 2, 2, 2}};
 
 PROCESS(jammer_process, "Jammer");
 AUTOSTART_PROCESSES(&jammer_process);
@@ -88,8 +91,8 @@ schedule_tx_cell(uint16_t slot_offset, uint16_t channel_offset,
       tsch_schedule_get_slotframe_by_handle(SLOTFRAME_HANDLE)) != NULL &&
      (timesource = tsch_queue_get_time_source()) != NULL &&
      tsch_schedule_add_link(slotframe, LINK_OPTION_TX, LINK_TYPE_NORMAL,
-                            &timesource->addr,
-                            slot_offset, channel_offset) != NULL) {
+                            &target_linkaddr,
+                            slot_offset, channel_offset, 0) != NULL) {
     printf("jammer: succeeded to schedule a TX cell\n");
     *num_tx_cells += 1;
     ret = 0;
@@ -98,6 +101,15 @@ schedule_tx_cell(uint16_t slot_offset, uint16_t channel_offset,
     ret = -1;
   }
   return ret;
+}
+
+static void
+send_packet(void)
+{
+  printf("sending a packet\n");
+  packetbuf_clear();
+  packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, &target_linkaddr);
+  NETSTACK_MAC.send(NULL, NULL);
 }
 
 PROCESS_THREAD(jammer_process, ev, data)
@@ -126,7 +138,7 @@ PROCESS_THREAD(jammer_process, ev, data)
           slot_offset = parse_uint16(str_p, &str_p);
           channel_offset = parse_uint16(str_p, &str_p);
           if(slot_offset > 0 &&
-             channel_offset > 0) {
+             channel_offset >= 0) {
             do_scheduling = true;
           } else {
             /* invalid values; ignore them */
@@ -152,8 +164,7 @@ PROCESS_THREAD(jammer_process, ev, data)
         }
       }
       if(num_tx_cells > 0) {
-        printf("jammer: send KA\n");
-        tsch_schedule_keepalive(1);
+        send_packet();
       }
       if(etimer_expired(&et)) {
         etimer_reset(&et);

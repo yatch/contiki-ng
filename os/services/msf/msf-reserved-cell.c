@@ -54,14 +54,32 @@
 extern struct tsch_asn_divisor_t tsch_hopping_sequence_length;
 
 /* static functions */
+static bool is_slot_offset_unused(tsch_slotframe_t *slotframe,
+                                  uint16_t slot_offset);
 static int32_t find_unused_slot_offset(tsch_slotframe_t *slotframe);
 
+/*---------------------------------------------------------------------------*/
+static bool
+is_slot_offset_unused(tsch_slotframe_t *slotframe, uint16_t slot_offset)
+{
+  for(int channel_offset = 0;
+      channel_offset < TSCH_HOPPING_SEQUENCE_MAX_LEN;
+      channel_offset++) {
+    if(tsch_schedule_get_link_by_timeslot(slotframe,
+                                          slot_offset,
+                                          channel_offset) != NULL) {
+      /* this slot_offset is found to be used */
+      return false;
+    }
+  }
+  return true;
+}
 /*---------------------------------------------------------------------------*/
 static int32_t
 find_unused_slot_offset(tsch_slotframe_t *slotframe)
 {
-  int32_t ret, slot_offset;
-  uint16_t slot_offset_base;
+  int32_t ret;
+  uint16_t slot_offset_base, slot_offset;
   const tsch_link_t *autonomous_rx_cell = msf_autonomous_cell_get_rx();
 
   assert(autonomous_rx_cell != NULL);
@@ -70,9 +88,10 @@ find_unused_slot_offset(tsch_slotframe_t *slotframe)
   ret = -1;
   for(int i = 0; i < slotframe->size.val; i++) {
     slot_offset = (slot_offset_base + i) % slotframe->size.val;
-    if(tsch_schedule_get_link_by_timeslot(slotframe, slot_offset) == NULL &&
-       slot_offset != 0 &&
-       slot_offset != autonomous_rx_cell->timeslot) {
+
+    if (slot_offset != 0 &&
+        slot_offset != autonomous_rx_cell->timeslot &&
+        is_slot_offset_unused(slotframe, (uint16_t)slot_offset)) {
       /*
        * avoid using the slot offset of 0, which is used by the
        * minimal schedule, as well as the slot offset of the autonoous
@@ -80,8 +99,6 @@ find_unused_slot_offset(tsch_slotframe_t *slotframe)
        */
       ret = slot_offset;
       break;
-    } else {
-      /* try the next one */
     }
   }
   return ret;
@@ -172,7 +189,8 @@ msf_reserved_cell_add(const linkaddr_t *peer_addr,
   if(slot_offset < 0) {
     _slot_offset = find_unused_slot_offset(slotframe);
   } else if(tsch_schedule_get_link_by_timeslot(slotframe,
-                                               slot_offset) != NULL) {
+                                               slot_offset,
+                                               channel_offset) != NULL) {
     /* this slot is used; we cannot reserve a cell */
     _slot_offset = -1;
   } else {
@@ -197,7 +215,7 @@ msf_reserved_cell_add(const linkaddr_t *peer_addr,
        (cell = tsch_schedule_add_link(slotframe, link_options,
                                       LINK_TYPE_NORMAL, peer_addr,
                                       (uint16_t)_slot_offset,
-                                      (uint16_t)_channel_offset)) == NULL) {
+                                      (uint16_t)_channel_offset, 0)) == NULL) {
       cell = NULL;
       LOG_ERR("failed to reserve a cell at "
               "slot_offset:%ld, channel_offset:%ld\n",

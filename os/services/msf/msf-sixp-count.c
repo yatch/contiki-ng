@@ -65,8 +65,8 @@ static void send_response(const linkaddr_t *peer_addr,
 /*---------------------------------------------------------------------------*/
 static void
 sent_callback_initiator(void *arg, uint16_t arg_len,
-                              const linkaddr_t *dest_addr,
-                              sixp_output_status_t status)
+                        const linkaddr_t *dest_addr,
+                        sixp_output_status_t status)
 {
   /* this callback is expected to be set only for request */
   /*
@@ -77,10 +77,7 @@ sent_callback_initiator(void *arg, uint16_t arg_len,
     /* do nothing */
   } else {
     LOG_ERR("COUNT transaction failed\n");
-    /*
-     * The peer may have lost cells; let's resolve the inconsistency.
-     */
-    msf_housekeeping_resolve_inconsistency(dest_addr);
+    /* The peer may have lost cells; it seems too late. */
   }
 }
 /*---------------------------------------------------------------------------*/

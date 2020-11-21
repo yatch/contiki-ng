@@ -105,7 +105,7 @@ add_cell(msf_autonomous_cell_type_t type, const linkaddr_t *mac_addr)
 
   if((cell = tsch_schedule_add_link(slotframe,
                                     link_options, LINK_TYPE_NORMAL, mac_addr,
-                                    slot_offset, channel_offset)) == NULL) {
+                                    slot_offset, channel_offset, 0)) == NULL) {
     LOG_ERR("failed to add the autonomous %s cell for ", type_str);
     LOG_ERR_LLADDR(mac_addr);
     LOG_ERR_("\n");
@@ -132,6 +132,7 @@ delete_cell(tsch_link_t *cell)
   } else {
     assert(cell->link_options == LINK_OPTION_LINK_TO_DELETE);
     /* skip this one */
+    return;
   }
 
   msf_housekeeping_delete_cell_later(cell);

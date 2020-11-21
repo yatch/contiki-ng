@@ -212,11 +212,12 @@ msf_sixp_find_scheduled_cell(const linkaddr_t *peer_addr,
         p += sizeof(sixp_pkt_cell_t)) {
 
       msf_sixp_get_cell_params(cell_list, &slot_offset, &channel_offset);
-      cell = tsch_schedule_get_link_by_timeslot(slotframe, slot_offset);
+      cell = tsch_schedule_get_link_by_timeslot(slotframe,
+                                                slot_offset,
+                                                channel_offset);
 
-      if(cell != NULL ||
-         cell->link_options == link_options ||
-         cell->channel_offset == channel_offset ||
+      if(cell != NULL &&
+         cell->link_options == link_options &&
          linkaddr_cmp(&cell->addr, peer_addr)) {
         /* found */
         break;

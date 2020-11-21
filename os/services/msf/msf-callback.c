@@ -168,8 +168,9 @@ msf_callback_packet_recv(const struct tsch_asn_t *asn,
       /* nothing to do */
     } else {
       msf_num_cells_increment_rx_used();
+      /* negotiated cells should have parent_addr as their link addresses */
+      msf_negotiated_cell_rx_is_used(src_addr, slot_offset);
     }
-    msf_negotiated_cell_rx_is_used(src_addr, slot_offset);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -207,7 +208,7 @@ msf_callback_tsch_nbr_removed(tsch_neighbor_t *nbr)
     /* do nothing */
   } else {
     /* delete an autnomous cell for the peer if it exists */
-    msf_autonomous_cell_delete_tx(&nbr->addr);
+    msf_autonomous_cell_delete_tx(tsch_queue_get_nbr_address(nbr));
   }
 }
 /*---------------------------------------------------------------------------*/
